@@ -3,7 +3,6 @@ import { isPlatformBrowser } from '@angular/common';
 import { HttpTypes } from '@medusajs/types';
 import { MedusaService } from './medusa.service';
 import { RegionsService } from './regions.service';
-import { BehaviorSubject, Observable } from 'rxjs';
 
 export interface AddToCartItem {
   variant_id: string;
@@ -14,10 +13,11 @@ export interface AddToCartItem {
   providedIn: 'root'
 })
 export class CartService {
-  private cartSubject = new BehaviorSubject<HttpTypes.StoreCart | null>(null);
+  private cartSignal = signal<HttpTypes.StoreCart | null>(null);
   private cartId = signal<string | null>(null);
 
-  cart$ = this.cartSubject.asObservable();
+  // Expose cart as readonly signal
+  cart = this.cartSignal.asReadonly();
 
   constructor(
     private medusaService: MedusaService,
@@ -70,7 +70,7 @@ export class CartService {
       
       console.log('Cart created successfully:', response.cart.id);
       this.saveCartToStorage(response.cart.id);
-      this.cartSubject.next(response.cart);
+      this.cartSignal.set(response.cart);
       return response.cart;
     } catch (error) {
       console.error('Error creating cart:', error);
@@ -84,7 +84,7 @@ export class CartService {
 
     try {
       const response = await this.medusaService.store.cart.retrieve(cartId);
-      this.cartSubject.next(response.cart);
+      this.cartSignal.set(response.cart);
       return response.cart;
     } catch (error) {
       console.error('Error retrieving cart:', error);
@@ -101,7 +101,7 @@ export class CartService {
 
   async addToCart(item: AddToCartItem): Promise<void> {
     console.log('Adding to cart:', item);
-    let cart = this.cartSubject.value;
+    let cart = this.cartSignal();
     
     if (!cart) {
       console.log('No cart exists, creating new cart...');
@@ -161,21 +161,21 @@ export class CartService {
   }
 
   getCartQuantity(): number {
-    const cart = this.cartSubject.value;
+    const cart = this.cartSignal();
     if (!cart?.items) return 0;
     
     return cart.items.reduce((total, item) => total + item.quantity, 0);
   }
 
   getCartTotal(): number {
-    const cart = this.cartSubject.value;
+    const cart = this.cartSignal();
     if (!cart) return 0;
     
     return cart.total || 0;
   }
 
   getCartItems(): HttpTypes.StoreCartLineItem[] {
-    const cart = this.cartSubject.value;
+    const cart = this.cartSignal();
     return cart?.items || [];
   }
 
@@ -214,7 +214,7 @@ export class CartService {
     if (!cartId) return;
 
     try {
-      const cart = this.cartSubject.value;
+      const cart = this.cartSignal();
       if (!cart) return;
 
       // Remove the specific code from existing promo codes
@@ -271,7 +271,7 @@ export class CartService {
   }
 
   async getPaymentMethods(): Promise<any[]> {
-    const cart = this.cartSubject.value;
+    const cart = this.cartSignal();
     if (!cart) return [];
 
     try {
@@ -291,7 +291,7 @@ export class CartService {
       const { cart } = await this.medusaService.fetch<{ cart: HttpTypes.StoreCart }>(`/store/carts/${cartId}/payment-sessions`, {
         method: 'POST',
       });
-      this.cartSubject.next(cart);
+      this.cartSignal.set(cart);
       return cart;
     } catch (error) {
       console.error('Error creating payment sessions:', error);
@@ -322,7 +322,7 @@ export class CartService {
       console.log('Cart ID:', cartId);
       const { cart } = await this.medusaService.store.cart.update(cartId, data, {}, {});
       console.log('Cart updated successfully:', cart);
-      this.cartSubject.next(cart);
+      this.cartSignal.set(cart);
       return cart;
     } catch (error: any) {
       console.error('Error updating cart:', error);
@@ -341,7 +341,7 @@ export class CartService {
       const { cart } = await this.medusaService.store.cart.addShippingMethod(cartId, {
         option_id: shippingOptionId
       }, {});
-      this.cartSubject.next(cart);
+      this.cartSignal.set(cart);
       return cart;
     } catch (error) {
       console.error('Error adding shipping method:', error);
@@ -354,7 +354,7 @@ export class CartService {
       localStorage.removeItem('cart_id');
     }
     this.cartId.set(null);
-    this.cartSubject.next(null);
+    this.cartSignal.set(null);
   }
 
   // Helper method to manually clear cart for debugging

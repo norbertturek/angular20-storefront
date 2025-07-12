@@ -1,136 +1,35 @@
-import { Component, OnInit, inject, signal } from '@angular/core';
+import { Component, inject, signal, DestroyRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { SearchService, ProductSearchResult } from '../../core/services/search.service';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 @Component({
   selector: 'app-search',
   standalone: true,
   imports: [CommonModule, FormsModule, RouterModule],
-  template: `
-    <div class="search-page">
-      <div class="container">
-        <div class="search-header">
-          <h1>Search Results</h1>
-          <div class="search-form">
-            <input 
-              type="text" 
-              class="search-input"
-              placeholder="Search products..."
-              [(ngModel)]="searchQuery"
-              (input)="onSearchInput()"
-              (keydown.enter)="performSearch()"
-            >
-            <button class="search-btn" (click)="performSearch()">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <circle cx="11" cy="11" r="8"/>
-                <path d="m21 21-4.35-4.35"/>
-              </svg>
-            </button>
-          </div>
-        </div>
-
-        @if (searchQuery && searchQuery.length > 0) {
-          <div class="search-info">
-            <p>
-              @if (isLoading()) {
-                Searching for "{{ searchQuery }}"...
-              } @else {
-                {{ searchResults().length }} result{{ searchResults().length !== 1 ? 's' : '' }} for "{{ searchQuery }}"
-              }
-            </p>
-          </div>
-        }
-
-        @if (isLoading()) {
-          <div class="loading">
-            <p>Loading...</p>
-          </div>
-        }
-
-        @if (!isLoading() && searchResults().length > 0) {
-          <div class="search-results">
-            <div class="products-grid">
-              @for (result of searchResults(); track result.id) {
-                <div class="product-item">
-                  <a [routerLink]="['/products', result.handle]" class="product-link">
-                    <div class="product-image">
-                      @if (result.thumbnail) {
-                        <img [src]="result.thumbnail" [alt]="result.title" />
-                      } @else {
-                        <div class="product-image-placeholder">
-                          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
-                            <circle cx="9" cy="9" r="2"/>
-                            <path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/>
-                          </svg>
-                        </div>
-                      }
-                    </div>
-                    <div class="product-info">
-                      <h3 class="product-title">{{ result.title }}</h3>
-                      @if (result.variants && result.variants.length > 0) {
-                        <p class="product-variant">{{ result.variants[0] }}</p>
-                      }
-                      @if (result.price) {
-                        <p class="product-price">{{ result.price.calculated_price }}</p>
-                      }
-                    </div>
-                  </a>
-                </div>
-              }
-            </div>
-          </div>
-        }
-
-        @if (!isLoading() && searchQuery && searchQuery.length > 0 && searchResults().length === 0) {
-          <div class="no-results">
-            <div class="no-results-content">
-              <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <circle cx="11" cy="11" r="8"/>
-                <path d="m21 21-4.35-4.35"/>
-              </svg>
-              <h2>No products found</h2>
-              <p>We couldn't find any products matching "{{ searchQuery }}".</p>
-              <p>Try adjusting your search terms or browse our collections.</p>
-              <a routerLink="/store" class="browse-btn">Browse All Products</a>
-            </div>
-          </div>
-        }
-
-        @if (!searchQuery || searchQuery.length === 0) {
-          <div class="search-empty">
-            <div class="search-empty-content">
-              <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <circle cx="11" cy="11" r="8"/>
-                <path d="m21 21-4.35-4.35"/>
-              </svg>
-              <h2>Search Our Products</h2>
-              <p>Enter a search term above to find products.</p>
-            </div>
-          </div>
-        }
-      </div>
-    </div>
-  `,
+  templateUrl: './search.component.html',
   styleUrls: ['./search.component.scss']
 })
-export class SearchPageComponent implements OnInit {
+export class SearchPageComponent {
   private route = inject(ActivatedRoute);
   private router = inject(Router);
   private searchService = inject(SearchService);
+  private destroyRef = inject(DestroyRef);
 
-  searchQuery = '';
+  searchQuery = signal('');
   searchResults = signal<ProductSearchResult[]>([]);
   isLoading = signal(false);
 
-  ngOnInit() {
-    // Get initial search query from URL
-    this.route.queryParams.subscribe(params => {
+  constructor() {
+    // Get initial search query from URL with automatic cleanup
+    this.route.queryParams.pipe(
+      takeUntilDestroyed(this.destroyRef)
+    ).subscribe(params => {
       const query = params['q'] || '';
-      if (query !== this.searchQuery) {
-        this.searchQuery = query;
+      if (query !== this.searchQuery()) {
+        this.searchQuery.set(query);
         if (query) {
           this.performSearch();
         }
@@ -144,7 +43,7 @@ export class SearchPageComponent implements OnInit {
   }
 
   performSearch() {
-    if (!this.searchQuery || this.searchQuery.trim().length === 0) {
+    if (!this.searchQuery() || this.searchQuery().trim().length === 0) {
       this.searchResults.set([]);
       return;
     }
@@ -152,7 +51,7 @@ export class SearchPageComponent implements OnInit {
     this.isLoading.set(true);
     this.updateUrl();
 
-    this.searchService.search(this.searchQuery).subscribe({
+    this.searchService.search(this.searchQuery()).subscribe({
       next: (results) => {
         this.searchResults.set(results);
         this.isLoading.set(false);
@@ -168,7 +67,7 @@ export class SearchPageComponent implements OnInit {
   private updateUrl() {
     this.router.navigate([], {
       relativeTo: this.route,
-      queryParams: { q: this.searchQuery || null },
+      queryParams: { q: this.searchQuery() || null },
       queryParamsHandling: 'merge'
     });
   }

@@ -1,4 +1,4 @@
-import { Component, OnInit, inject, signal, computed, DestroyRef } from '@angular/core';
+import { Component, inject, signal, computed, DestroyRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
@@ -15,120 +15,10 @@ import { RegionsService } from '../../core/services/regions.service';
   selector: 'app-store',
   standalone: true,
   imports: [CommonModule, FormsModule, RouterModule, ProductCardComponent],
-  template: `
-    <div class="store">
-      <div class="container">
-        <div class="store-header">
-          <h1>{{ pageTitle() }}</h1>
-          @if (pageDescription()) {
-            <p>{{ pageDescription() }}</p>
-          }
-        </div>
-
-        @if (!isLoading()) {
-          <div class="filters">
-            <div class="filter-group">
-              <label for="productType">Product Type:</label>
-              <select id="productType" [(ngModel)]="selectedType" (change)="onFilterChange()">
-                <option value="">All Types</option>
-                @for (type of productTypes(); track type.id) {
-                  <option [value]="type.value">{{ type.value }}</option>
-                }
-              </select>
-            </div>
-
-            <div class="filter-group">
-              <label for="collection">Collection:</label>
-              <select id="collection" [(ngModel)]="selectedCollection" (change)="onFilterChange()">
-                <option value="">All Collections</option>
-                @for (collection of collections(); track collection.id) {
-                  <option [value]="collection.handle">{{ collection.title }}</option>
-                }
-              </select>
-            </div>
-
-            <div class="filter-group">
-              <label for="search">Search:</label>
-              <input 
-                type="text" 
-                id="search" 
-                [(ngModel)]="searchQuery" 
-                (input)="onSearchChange()"
-                placeholder="Search products..."
-              />
-            </div>
-          </div>
-        }
-
-        <div class="results-info">
-          @if (totalProducts() > 0) {
-            <span>
-              Showing {{ products().length }} of {{ totalProducts() }} products
-            </span>
-          }
-        </div>
-
-        @if (isLoading()) {
-          <div class="loading-state">
-            <div class="loading-spinner">
-              <div class="spinner"></div>
-              <p>Loading products...</p>
-            </div>
-          </div>
-        }
-
-        @if (error() && !isLoading()) {
-          <div class="error-state">
-            <div class="error-message">
-              <h2>Oops! Something went wrong</h2>
-              <p>{{ error() }}</p>
-              <button (click)="loadProducts()" class="retry-button">Try Again</button>
-            </div>
-          </div>
-        }
-
-        @if (!isLoading() && !error()) {
-          <div class="products-section">
-            @if (products().length === 0) {
-              <div class="empty-state">
-                <h2>No products found</h2>
-                <p>Try adjusting your filters or search terms.</p>
-              </div>
-            }
-
-            @if (products().length > 0) {
-              <div class="products-grid">
-                @for (product of products(); track product.id) {
-                  <div class="product-item">
-                    <app-product-card [product]="product"></app-product-card>
-                  </div>
-                }
-              </div>
-            }
-
-            @if (hasMoreProducts() && products().length > 0) {
-              <div class="load-more">
-                <button 
-                  (click)="loadMoreProducts()" 
-                  [disabled]="isLoadingMore()"
-                  class="load-more-btn"
-                >
-                  @if (!isLoadingMore()) {
-                    <span>Load More Products</span>
-                  } @else {
-                    <span>Loading...</span>
-                  }
-                </button>
-              </div>
-            }
-          </div>
-        }
-      </div>
-    </div>
-  `,
+  templateUrl: './store.component.html',
   styleUrls: ['./store.component.scss']
 })
-export class StoreComponent implements OnInit {
+export class StoreComponent {
   private route = inject(ActivatedRoute);
   private productsService = inject(ProductsService);
   private productTypesService = inject(ProductTypesService);
@@ -178,7 +68,7 @@ export class StoreComponent implements OnInit {
   
   private searchTimeout: any;
 
-  ngOnInit() {
+  constructor() {
     this.loadFilters();
     this.handleRouteParams();
   }

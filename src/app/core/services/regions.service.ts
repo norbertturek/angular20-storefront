@@ -1,28 +1,33 @@
-import { Injectable } from '@angular/core';
+import { Injectable, signal } from '@angular/core';
 import { HttpTypes } from '@medusajs/types';
 import { MedusaService } from './medusa.service';
-import { Observable, from, BehaviorSubject } from 'rxjs';
+import { Observable, from } from 'rxjs';
 import { map, catchError } from 'rxjs/operators';
 
 @Injectable({
   providedIn: 'root'
 })
 export class RegionsService {
-  private regionMapSubject = new BehaviorSubject<Map<string, HttpTypes.StoreRegion>>(new Map());
-  private regionsSubject = new BehaviorSubject<HttpTypes.StoreRegion[]>([]);
+  private regionsSignal = signal<HttpTypes.StoreRegion[]>([]);
+  private regionMapSignal = signal<Map<string, HttpTypes.StoreRegion>>(new Map());
+
+  // Expose as readonly signals
+  regions = this.regionsSignal.asReadonly();
+  regionMap = this.regionMapSignal.asReadonly();
 
   constructor(private medusaService: MedusaService) {
     this.loadRegions();
   }
 
+  // Legacy Observable getter for backward compatibility
   get regions$() {
-    return this.regionsSubject.asObservable();
+    return from(this.regions());
   }
 
   private async loadRegions() {
     try {
       const regions = await this.listRegions();
-      this.regionsSubject.next(regions);
+      this.regionsSignal.set(regions);
       this.buildRegionMap(regions);
     } catch (error) {
       console.error('Error loading regions:', error);
@@ -40,7 +45,7 @@ export class RegionsService {
       });
     });
 
-    this.regionMapSubject.next(regionMap);
+    this.regionMapSignal.set(regionMap);
   }
 
   async listRegions(): Promise<HttpTypes.StoreRegion[]> {
@@ -65,12 +70,12 @@ export class RegionsService {
 
   async getRegion(countryCode?: string): Promise<HttpTypes.StoreRegion | null> {
     try {
-      const regionMap = this.regionMapSubject.value;
+      const regionMap = this.regionMapSignal();
       
       if (regionMap.size === 0) {
         // If map is empty, load regions first
         await this.loadRegions();
-        const updatedMap = this.regionMapSubject.value;
+        const updatedMap = this.regionMapSignal();
         const regions = Array.from(updatedMap.values());
         const firstRegion = regions.length > 0 ? regions[0] : null;
         return countryCode ? updatedMap.get(countryCode) || firstRegion : firstRegion;
@@ -85,29 +90,33 @@ export class RegionsService {
     }
   }
 
+  // Legacy Observable method for backward compatibility
   getRegionObservable(countryCode?: string): Observable<HttpTypes.StoreRegion | null> {
     return from(this.getRegion(countryCode));
   }
 
+  // Legacy Observable method for backward compatibility
   getCountryOptions(): Observable<{ country: string; region: string; label: string }[]> {
-    return this.regions$.pipe(
-      map(regions => {
-        const options: { country: string; region: string; label: string }[] = [];
-        
-        regions.forEach(region => {
-          region.countries?.forEach(country => {
-            if (country.iso_2 && country.display_name) {
-              options.push({
-                country: country.iso_2,
-                region: region.id,
-                label: country.display_name
-              });
-            }
-          });
-        });
+    return from(this.getCountryOptionsAsync());
+  }
 
-        return options.sort((a, b) => a.label.localeCompare(b.label));
-      })
-    );
+  // New async method using signals
+  async getCountryOptionsAsync(): Promise<{ country: string; region: string; label: string }[]> {
+    const regions = this.regionsSignal();
+    const options: { country: string; region: string; label: string }[] = [];
+    
+    regions.forEach(region => {
+      region.countries?.forEach(country => {
+        if (country.iso_2 && country.display_name) {
+          options.push({
+            country: country.iso_2,
+            region: region.id,
+            label: country.display_name
+          });
+        }
+      });
+    });
+
+    return options.sort((a, b) => a.label.localeCompare(b.label));
   }
 } 

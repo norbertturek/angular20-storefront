@@ -1,7 +1,6 @@
-import { Component, inject, signal, OnInit, DestroyRef, effect } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { Component, effect, inject, signal } from '@angular/core';
 import { RouterModule } from '@angular/router';
-import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CartDrawerService } from '../../../core/services/cart-drawer.service';
 import { CartService } from '../../../core/services/cart.service';
 import { DiscountCodeComponent } from '../../../features/checkout/components/discount-code/discount-code.component';
@@ -522,10 +521,9 @@ import { DiscountCodeComponent } from '../../../features/checkout/components/dis
     }
   `  ]
 })
-export class CartDrawerComponent implements OnInit {
+export class CartDrawerComponent {
   cartDrawerService = inject(CartDrawerService);
   private cartService = inject(CartService);
-  private destroyRef = inject(DestroyRef);
 
   cart = signal<any>(null);
 
@@ -534,18 +532,13 @@ export class CartDrawerComponent implements OnInit {
     effect(() => {
       const isOpen = this.cartDrawerService.isOpen();
       if (isOpen && !this.cart()) {
-        console.log('Loading cart for drawer...');
         this.cartService.retrieveCart();
       }
     });
-  }
 
-  ngOnInit() {
-    // Subscribe to cart changes
-    this.cartService.cart$.pipe(
-      takeUntilDestroyed(this.destroyRef)
-    ).subscribe(cart => {
-      console.log('Cart drawer received cart data:', cart);
+    // Use effect to reactively update cart when cart service changes
+    effect(() => {
+      const cart = this.cartService.cart();
       this.cart.set(cart);
     });
   }

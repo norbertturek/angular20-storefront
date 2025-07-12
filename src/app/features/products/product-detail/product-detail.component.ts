@@ -1,4 +1,4 @@
-import { Component, OnInit, inject, signal, computed, DestroyRef } from '@angular/core';
+import { Component, inject, signal, computed, DestroyRef, effect } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
@@ -13,245 +13,10 @@ import { ProductCardComponent } from '../../../shared/components/product-card/pr
   selector: 'app-product-detail',
   standalone: true,
   imports: [CommonModule, FormsModule, RouterModule, ProductCardComponent],
-  template: `
-    <div class="product-detail-container">
-      @if (!isLoading() && product()) {
-        <div class="product-detail">
-          <div class="product-images">
-            <div class="main-image">
-              <img 
-                [src]="selectedImageUrl()" 
-                [alt]="product()?.title"
-                class="product-image"
-              />
-            </div>
-            
-            @if (productImages().length > 1) {
-              <div class="image-thumbnails">
-                @for (image of productImages(); track image.id) {
-                  <img 
-                    [src]="image.url" 
-                    [alt]="product()?.title"
-                    class="thumbnail"
-                    [class.active]="selectedImageUrl() === image.url"
-                    (click)="selectImage(image.url)"
-                  />
-                }
-              </div>
-            }
-          </div>
-
-          <div class="product-info">
-            @if (product()?.collection) {
-              <a 
-                [routerLink]="['/store']" 
-                [queryParams]="{collection: product()?.collection?.handle}"
-                class="product-collection-link"
-              >
-                <p class="product-collection">{{ product()?.collection?.title }}</p>
-              </a>
-            }
-            
-            <h1>{{ product()?.title }}</h1>
-            
-            @if (selectedVariant()?.calculated_price) {
-              <div class="product-price">
-                @if (hasDiscountPrice()) {
-                  <div>
-                    <span class="original-price">{{ getFormattedOriginalPrice() }}</span>
-                    <span class="sale-price">{{ getFormattedCalculatedPrice() }}</span>
-                  </div>
-                } @else {
-                  <span class="price">{{ getFormattedCalculatedPrice() }}</span>
-                }
-              </div>
-            }
-            
-            @if (product()?.description) {
-              <div class="product-description">
-                <p>{{ product()?.description }}</p>
-              </div>
-            }
-            
-            @if (productVariants().length > 1) {
-              <div class="variant-selection">
-                <h3>Select Variant</h3>
-                <div class="variants-grid">
-                  @for (variant of productVariants(); track variant.id) {
-                    <button 
-                      class="variant-button"
-                      [class.selected]="selectedVariant()?.id === variant.id"
-                      [class.disabled]="!isVariantAvailable(variant)"
-                      (click)="selectVariant(variant)"
-                      [disabled]="!isVariantAvailable(variant)"
-                    >
-                      {{ variant.title }}
-                      @if (!isVariantAvailable(variant)) {
-                        <span class="out-of-stock">Out of Stock</span>
-                      }
-                    </button>
-                  }
-                </div>
-              </div>
-            }
-
-            <div class="quantity-cart">
-              <div class="quantity-selector">
-                <label for="quantity">Quantity:</label>
-                <div class="quantity-controls">
-                  <button 
-                    type="button" 
-                    (click)="decreaseQuantity()"
-                    [disabled]="quantity() <= 1"
-                    class="quantity-btn"
-                  >
-                    -
-                  </button>
-                  <input 
-                    type="number" 
-                    id="quantity"
-                    [ngModel]="quantity()"
-                    (ngModelChange)="quantity.set($event)"
-                    [min]="1"
-                    [max]="getMaxQuantity()"
-                    class="quantity-input"
-                  />
-                  <button 
-                    type="button" 
-                    (click)="increaseQuantity()"
-                    [disabled]="quantity() >= getMaxQuantity()"
-                    class="quantity-btn"
-                  >
-                    +
-                  </button>
-                </div>
-              </div>
-              
-              <button 
-                class="add-to-cart-btn"
-                [disabled]="!selectedVariant() || !isVariantAvailable(selectedVariant()!) || isAddingToCart()"
-                (click)="addToCart()"
-              >
-                @if (!isAddingToCart()) {
-                  <span>Add to Cart</span>
-                } @else {
-                  <span>Adding...</span>
-                }
-              </button>
-            </div>
-            
-            @if (addToCartMessage()) {
-              <div class="cart-message" [class.success]="addToCartSuccess()">
-                {{ addToCartMessage() }}
-              </div>
-            }
-
-            <div class="product-details">
-              @if (product()?.type) {
-                <div class="detail-item">
-                  <strong>Type:</strong> {{ product()?.type?.value }}
-                </div>
-              }
-              @if (productTags().length > 0) {
-                <div class="detail-item">
-                  <strong>Tags:</strong>
-                  @for (tag of productTags(); track tag.id; let last = $last) {
-                    <span>{{ tag.value }}@if (!last) {<span>, </span>}</span>
-                  }
-                </div>
-              }
-              @if (selectedVariant()?.sku) {
-                <div class="detail-item">
-                  <strong>SKU:</strong> {{ selectedVariant()?.sku }}
-                </div>
-              }
-            </div>
-          </div>
-        </div>
-      }
-      
-      @if (isLoading()) {
-        <div class="loading-state">
-          <div class="container">
-            <div class="loading-spinner">
-              <div class="spinner"></div>
-              <p>Loading product...</p>
-            </div>
-          </div>
-        </div>
-      }
-      
-      @if (error()) {
-        <div class="error-state">
-          <div class="container">
-            <div class="error-message">
-              <h2>Product not found</h2>
-              <p>{{ error() }}</p>
-              <button (click)="goBack()" class="back-button">Go Back</button>
-            </div>
-          </div>
-        </div>
-      }
-      
-      @if (product()?.collection?.metadata) {
-        <div class="collection-inspired-section">
-          <div class="container">
-            @if (getCollectionMetadata('product_page_heading')) {
-              <h2 class="collection-heading">{{ getCollectionMetadata('product_page_heading') }}</h2>
-            }
-            
-            @if (getCollectionMetadata('product_page_image')) {
-              <div class="collection-image">
-                <img 
-                  [src]="getCollectionMetadata('product_page_image')" 
-                  [alt]="product()?.collection?.title || 'Collection image'"
-                  class="collection-img"
-                />
-              </div>
-            }
-            
-            @if (getCollectionMetadata('product_page_cta_heading')) {
-              <div class="collection-cta">
-                <h3 class="cta-heading">{{ getCollectionMetadata('product_page_cta_heading') }}</h3>
-                @if (getCollectionMetadata('product_page_cta_link') && product()?.collection?.handle) {
-                  <a 
-                    [routerLink]="['/store']" 
-                    [queryParams]="{collection: product()?.collection?.handle}"
-                    class="cta-link"
-                  >
-                    {{ getCollectionMetadata('product_page_cta_link') }}
-                  </a>
-                }
-              </div>
-            }
-          </div>
-        </div>
-      }
-      
-      <div class="related-products-section">
-        <div class="container">
-          <h2 class="section-title">Related Products</h2>
-          @if (relatedProducts().length > 0) {
-            <div class="related-products-grid">
-              @for (relatedProduct of relatedProducts(); track relatedProduct.id) {
-                <app-product-card [product]="relatedProduct" size="normal"></app-product-card>
-              }
-            </div>
-          } @else if (isLoadingRelated()) {
-            <div class="loading-related">
-              <div class="spinner"></div>
-              <p>Loading related products...</p>
-            </div>
-          } @else {
-            <p class="no-related">No related products found.</p>
-          }
-        </div>
-      </div>
-    </div>
-  `,
+  templateUrl: './product-detail.component.html',
   styleUrls: ['./product-detail.component.scss']
 })
-export class ProductDetailComponent implements OnInit {
+export class ProductDetailComponent {
   private route = inject(ActivatedRoute);
   private router = inject(Router);
   private productsService = inject(ProductsService);
@@ -292,18 +57,8 @@ export class ProductDetailComponent implements OnInit {
     return this.product()?.tags || [];
   });
 
-  ngOnInit() {
-    this.route.params.pipe(
-      takeUntilDestroyed(this.destroyRef)
-    ).subscribe(params => {
-      const productHandle = params['handle'];
-      if (productHandle) {
-        // Reset state and scroll to top when navigating to a different product
-        this.resetComponentState();
-        this.scrollToTop();
-        this.loadProduct(productHandle);
-      }
-    });
+  constructor() {
+    this.handleRouteParams();
   }
 
   private resetComponentState() {
@@ -542,5 +297,19 @@ export class ProductDetailComponent implements OnInit {
     setTimeout(() => {
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }, 100);
+  }
+
+  private handleRouteParams() {
+    this.route.params.pipe(
+      takeUntilDestroyed(this.destroyRef)
+    ).subscribe(params => {
+      const productHandle = params['handle'];
+      if (productHandle) {
+        // Reset state and scroll to top when navigating to a different product
+        this.resetComponentState();
+        this.scrollToTop();
+        this.loadProduct(productHandle);
+      }
+    });
   }
 } 

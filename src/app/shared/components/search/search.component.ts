@@ -1,124 +1,37 @@
-import { Component, OnInit, OnDestroy, inject, signal, ElementRef, ViewChild, HostListener } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { Component, DestroyRef, ElementRef, HostListener, inject, signal, ViewChild } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterModule } from '@angular/router';
-import { SearchService, ProductSearchResult } from '../../../core/services/search.service';
-import { Subject, takeUntil } from 'rxjs';
+import { ProductSearchResult, SearchService } from '../../../core/services/search.service';
 
 @Component({
   selector: 'app-search',
   standalone: true,
   imports: [CommonModule, FormsModule, RouterModule],
-  template: `
-    <div class="search-container" [class.active]="isSearchActive()">
-      <button 
-        class="search-btn" 
-        (click)="toggleSearch()"
-        [attr.aria-label]="isSearchActive() ? 'Close search' : 'Open search'"
-      >
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <circle cx="11" cy="11" r="8"/>
-          <path d="m21 21-4.35-4.35"/>
-        </svg>
-      </button>
-      
-      <div class="search-input-container" [class.visible]="isSearchActive()">
-        <input 
-          #searchInput
-          type="text" 
-          class="search-input"
-          placeholder="Search products..."
-          [(ngModel)]="searchQuery"
-          (input)="onSearchInput($event)"
-          (keydown)="onKeyDown($event)"
-          (focus)="onSearchFocus()"
-          autocomplete="off"
-        >
-        
-        @if (isSearchActive() && searchResults().length > 0) {
-          <div class="search-results">
-            @for (result of searchResults(); track result.id) {
-              <a 
-                [routerLink]="['/products', result.handle]" 
-                class="search-result-item"
-                (click)="onResultClick()"
-              >
-                <div class="result-image">
-                  @if (result.thumbnail) {
-                    <img [src]="result.thumbnail" [alt]="result.title" />
-                  } @else {
-                    <div class="result-image-placeholder">
-                      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
-                        <circle cx="9" cy="9" r="2"/>
-                        <path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/>
-                      </svg>
-                    </div>
-                  }
-                </div>
-                
-                <div class="result-content">
-                  <h3 class="result-title">{{ result.title }}</h3>
-                  @if (result.variants && result.variants.length > 0) {
-                    <p class="result-variant">{{ result.variants[0] }}</p>
-                  }
-                </div>
-                
-                @if (result.price) {
-                  <div class="result-price">
-                    {{ result.price.calculated_price }}
-                  </div>
-                }
-              </a>
-            }
-          </div>
-        }
-        
-        @if (isSearchActive() && searchQuery.length > 0 && searchResults().length === 0 && !isLoading()) {
-          <div class="search-results">
-            <div class="no-results">
-              <p>No products found for "{{ searchQuery }}"</p>
-            </div>
-          </div>
-        }
-        
-        @if (isLoading()) {
-          <div class="search-results">
-            <div class="loading">
-              <p>Searching...</p>
-            </div>
-          </div>
-        }
-      </div>
-    </div>
-  `,
+  templateUrl: './search.component.html',
   styleUrls: ['./search.component.scss']
 })
-export class SearchComponent implements OnInit, OnDestroy {
+export class SearchComponent {
   @ViewChild('searchInput') searchInput!: ElementRef<HTMLInputElement>;
   
   private searchService = inject(SearchService);
   private router = inject(Router);
-  private destroy$ = new Subject<void>();
+  private destroyRef = inject(DestroyRef);
   
   searchQuery = '';
   isSearchActive = signal(false);
   searchResults = signal<ProductSearchResult[]>([]);
   isLoading = signal(false);
   
-  ngOnInit() {
-    // Listen for search results
+  constructor() {
+    // Listen for search results with automatic cleanup
     this.searchService.searchWithDebounce(this.searchQuery).pipe(
-      takeUntil(this.destroy$)
+      takeUntilDestroyed(this.destroyRef)
     ).subscribe(results => {
       this.searchResults.set(results);
       this.isLoading.set(false);
     });
-  }
-  
-  ngOnDestroy() {
-    this.destroy$.next();
-    this.destroy$.complete();
   }
   
   toggleSearch() {
@@ -142,7 +55,7 @@ export class SearchComponent implements OnInit, OnDestroy {
     if (this.searchQuery.trim().length > 0) {
       this.isLoading.set(true);
       this.searchService.searchWithDebounce(this.searchQuery).pipe(
-        takeUntil(this.destroy$)
+        takeUntilDestroyed(this.destroyRef)
       ).subscribe(results => {
         this.searchResults.set(results);
         this.isLoading.set(false);

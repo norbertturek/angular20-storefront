@@ -1,10 +1,9 @@
-import { Component, OnInit, inject, signal, DestroyRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { Component, effect, inject, signal } from '@angular/core';
 import { RouterModule } from '@angular/router';
-import { CartService } from '../../../core/services/cart.service';
 import { CartDrawerService } from '../../../core/services/cart-drawer.service';
+import { CartService } from '../../../core/services/cart.service';
 import { SearchComponent } from '../search/search.component';
-import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 @Component({
   selector: 'app-header',
@@ -49,17 +48,16 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
   `,
   styleUrls: ['./header.component.scss']
 })
-export class HeaderComponent implements OnInit {
+export class HeaderComponent {
   private cartService = inject(CartService);
-  private destroyRef = inject(DestroyRef);
   cartDrawerService = inject(CartDrawerService);
-  
+
   cartQuantity = signal(0);
 
-  ngOnInit() {
-    this.cartService.cart$.pipe(
-      takeUntilDestroyed(this.destroyRef)
-    ).subscribe(cart => {
+  constructor() {
+    // Use effect to reactively update cart quantity when cart changes
+    effect(() => {
+      const cart = this.cartService.cart();
       this.cartQuantity.set(this.cartService.getCartQuantity());
     });
   }
