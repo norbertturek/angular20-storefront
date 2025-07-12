@@ -1,9 +1,9 @@
 import { CommonModule } from '@angular/common';
 import { Component, effect, inject, signal } from '@angular/core';
 import { RouterModule } from '@angular/router';
-import { CartDrawerService } from '../../../core/services/cart-drawer.service';
-import { CartService } from '../../../core/services/cart.service';
-import { DiscountCodeComponent } from '../../../features/checkout/components/discount-code/discount-code.component';
+import { CartDrawerService } from '@core/services/cart-drawer.service';
+import { CartService } from '@core/services/cart.service';
+import { DiscountCodeComponent } from '@features/checkout/components/discount-code/discount-code.component';
 
 @Component({
   selector: 'app-cart-drawer',

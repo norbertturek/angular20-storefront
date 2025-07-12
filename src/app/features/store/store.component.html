@@ -11,7 +11,7 @@
       <div class="filters">
         <div class="filter-group">
           <label for="productType">Product Type:</label>
-          <select id="productType" [(ngModel)]="selectedType" (change)="onFilterChange()">
+          <select id="productType" [ngModel]="selectedType()" (ngModelChange)="selectedType.set($event); onFilterChange()">
             <option value="">All Types</option>
             @for (type of productTypes(); track type.id) {
               <option [value]="type.value">{{ type.value }}</option>
@@ -21,7 +21,7 @@
 
         <div class="filter-group">
           <label for="collection">Collection:</label>
-          <select id="collection" [(ngModel)]="selectedCollection" (change)="onFilterChange()">
+          <select id="collection" [ngModel]="selectedCollection()" (ngModelChange)="selectedCollection.set($event); onFilterChange()">
             <option value="">All Collections</option>
             @for (collection of collections(); track collection.id) {
               <option [value]="collection.handle">{{ collection.title }}</option>
@@ -34,8 +34,8 @@
           <input 
             type="text" 
             id="search" 
-            [(ngModel)]="searchQuery" 
-            (input)="onSearchChange()"
+            [ngModel]="searchQuery()" 
+            (ngModelChange)="searchQuery.set($event); onSearchChange()"
             placeholder="Search products..."
           />
         </div>

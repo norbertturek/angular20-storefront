@@ -1,9 +1,9 @@
 import { CommonModule } from '@angular/common';
 import { Component, effect, inject, signal } from '@angular/core';
 import { RouterModule } from '@angular/router';
-import { CartDrawerService } from '../../../core/services/cart-drawer.service';
-import { CartService } from '../../../core/services/cart.service';
-import { SearchComponent } from '../search/search.component';
+import { CartDrawerService } from '@core/services/cart-drawer.service';
+import { CartService } from '@core/services/cart.service';
+import { SearchComponent } from '@shared/components/search/search.component';
 
 @Component({
   selector: 'app-header',

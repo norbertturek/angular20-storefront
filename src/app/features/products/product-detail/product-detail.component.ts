@@ -3,11 +3,11 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { HttpTypes } from '@medusajs/types';
-import { ProductsService } from '../../../core/services/products.service';
-import { CartService } from '../../../core/services/cart.service';
+import { ProductsService } from '@core/services/products.service';
+import { CartService } from '@core/services/cart.service';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { RegionsService } from '../../../core/services/regions.service';
-import { ProductCardComponent } from '../../../shared/components/product-card/product-card.component';
+import { RegionsService } from '@core/services/regions.service';
+import { ProductCardComponent } from '@shared/components/product-card/product-card.component';
 
 @Component({
   selector: 'app-product-detail',

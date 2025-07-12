@@ -1,8 +1,9 @@
-import { Component, Input } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { Component, Input } from '@angular/core';
 import { RouterModule } from '@angular/router';
-import { CartTotalsComponent } from '../cart-totals/cart-totals.component';
-import { DiscountCodeComponent } from '../discount-code/discount-code.component';
+
+import { CartTotalsComponent } from '@features/checkout/components/cart-totals/cart-totals.component';
+import { DiscountCodeComponent } from '@features/checkout/components/discount-code/discount-code.component';
 
 @Component({
   selector: 'app-checkout-summary',

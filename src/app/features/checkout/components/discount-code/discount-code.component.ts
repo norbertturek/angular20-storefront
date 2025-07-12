@@ -1,7 +1,7 @@
-import { Component, Input, signal, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { Component, inject, Input, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { CartService } from '../../../../core/services/cart.service';
+import { CartService } from '@core/services/cart.service';
 
 @Component({
   selector: 'app-discount-code',

@@ -19,13 +19,13 @@
       </div>
       
       @if (currentStep() === 'email') {
-        <div class="step-content">
+        <div class="step-content" [formGroup]="emailForm">
           <div class="form-group">
             <label for="email">Email address</label>
             <input 
               type="email" 
               id="email" 
-              [(ngModel)]="emailForm.email"
+              formControlName="email"
               placeholder="Enter your email"
               required
             >
@@ -33,7 +33,7 @@
           <button 
             class="continue-btn" 
             (click)="submitEmail()"
-            [disabled]="!emailForm.email || isLoading()"
+            [disabled]="!emailForm.valid || isLoading()"
           >
             @if (isLoading()) {
               <span class="loading-spinner"></span>
@@ -58,16 +58,16 @@
       </div>
       
       @if (currentStep() === 'delivery') {
-        <div class="step-content">
+        <div class="step-content" [formGroup]="addressForm">
           <h3>Shipping Address</h3>
-          <div class="address-form">
+          <div class="address-form" formGroupName="shipping_address">
             <div class="form-row">
               <div class="form-group">
                 <label for="first_name">First Name</label>
                 <input 
                   type="text" 
                   id="first_name" 
-                  [(ngModel)]="addressForm.shipping_address.first_name"
+                  formControlName="first_name"
                   required
                 >
               </div>
@@ -76,7 +76,7 @@
                 <input 
                   type="text" 
                   id="last_name" 
-                  [(ngModel)]="addressForm.shipping_address.last_name"
+                  formControlName="last_name"
                   required
                 >
               </div>
@@ -87,7 +87,7 @@
               <input 
                 type="text" 
                 id="address_1" 
-                [(ngModel)]="addressForm.shipping_address.address_1"
+                formControlName="address_1"
                 required
               >
             </div>
@@ -98,7 +98,7 @@
                 <input 
                   type="text" 
                   id="city" 
-                  [(ngModel)]="addressForm.shipping_address.city"
+                  formControlName="city"
                   required
                 >
               </div>
@@ -107,7 +107,7 @@
                 <input 
                   type="text" 
                   id="postal_code" 
-                  [(ngModel)]="addressForm.shipping_address.postal_code"
+                  formControlName="postal_code"
                   required
                 >
               </div>
@@ -117,7 +117,7 @@
               <label for="country_code">Country</label>
               <select 
                 id="country_code" 
-                [(ngModel)]="addressForm.shipping_address.country_code"
+                formControlName="country_code"
                 required
               >
                 <option value="">Select a country</option>
@@ -134,7 +134,7 @@
               <input 
                 type="tel" 
                 id="phone" 
-                [(ngModel)]="addressForm.shipping_address.phone"
+                formControlName="phone"
               >
             </div>
           </div>
@@ -143,14 +143,14 @@
             <label class="checkbox-label">
               <input 
                 type="checkbox" 
-                [(ngModel)]="sameAsBilling"
-                (change)="onSameAsBillingChange()"
+                [checked]="sameAsBilling()"
+                (change)="onCheckboxChange($event)"
               >
               Billing address is the same as shipping address
             </label>
             
-            @if (!sameAsBilling) {
-              <div class="billing-form">
+            @if (!sameAsBilling()) {
+              <div class="billing-form" formGroupName="billing_address">
                 <h3>Billing Address</h3>
                 <div class="form-row">
                   <div class="form-group">
@@ -158,7 +158,7 @@
                     <input 
                       type="text" 
                       id="billing_first_name" 
-                      [(ngModel)]="addressForm.billing_address.first_name"
+                      formControlName="first_name"
                       required
                     >
                   </div>
@@ -167,7 +167,7 @@
                     <input 
                       type="text" 
                       id="billing_last_name" 
-                      [(ngModel)]="addressForm.billing_address.last_name"
+                      formControlName="last_name"
                       required
                     >
                   </div>
@@ -178,7 +178,7 @@
                   <input 
                     type="text" 
                     id="billing_address_1" 
-                    [(ngModel)]="addressForm.billing_address.address_1"
+                    formControlName="address_1"
                     required
                   >
                 </div>
@@ -189,7 +189,7 @@
                     <input 
                       type="text" 
                       id="billing_city" 
-                      [(ngModel)]="addressForm.billing_address.city"
+                      formControlName="city"
                       required
                     >
                   </div>
@@ -198,7 +198,7 @@
                     <input 
                       type="text" 
                       id="billing_postal_code" 
-                      [(ngModel)]="addressForm.billing_address.postal_code"
+                      formControlName="postal_code"
                       required
                     >
                   </div>
@@ -208,7 +208,7 @@
                   <label for="billing_country_code">Country</label>
                   <select 
                     id="billing_country_code" 
-                    [(ngModel)]="addressForm.billing_address.country_code"
+                    formControlName="country_code"
                     required
                   >
                     <option value="">Select a country</option>
@@ -263,24 +263,25 @@
           
           @if (shippingOptions().length > 0) {
             <div class="shipping-options">
-              @for (option of shippingOptions(); track option.id) {
-                <label class="shipping-option">
-                  <input 
-                    type="radio" 
-                    name="shipping" 
-                    [value]="option.id"
-                    [(ngModel)]="selectedShippingOption"
-                  >
-                  <span class="option-name">{{ option.name }}</span>
-                  <span class="option-price">{{ formatPrice(option.amount) }}</span>
-                </label>
-              }
-            </div>
-            <button 
-              class="continue-btn" 
-              (click)="submitShippingMethod()"
-              [disabled]="!selectedShippingOption || isLoading()"
-            >
+                                @for (option of shippingOptions(); track option.id) {
+                    <label class="shipping-option">
+                      <input 
+                        type="radio" 
+                        name="shipping" 
+                        [value]="option.id"
+                        [checked]="selectedShippingOption() === option.id"
+                        (change)="selectedShippingOption.set(option.id)"
+                      >
+                      <span class="option-name">{{ option.name }}</span>
+                      <span class="option-price">{{ formatPrice(option.amount) }}</span>
+                    </label>
+                  }
+                </div>
+                <button 
+                  class="continue-btn" 
+                  (click)="submitShippingMethod()"
+                  [disabled]="!selectedShippingOption() || isLoading()"
+                >
               @if (isLoading()) {
                 <span class="loading-spinner"></span>
               }

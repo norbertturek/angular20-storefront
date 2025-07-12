@@ -2,9 +2,9 @@ import { CommonModule } from '@angular/common';
 import { AfterViewInit, Component, DestroyRef, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
+import { CartService } from '@core/services/cart.service';
+import { StripeService } from '@core/services/stripe.service';
 import { HttpTypes } from '@medusajs/types';
-import { CartService } from '../../../../core/services/cart.service';
-import { StripeService } from '../../../../core/services/stripe.service';
 
 @Component({
   selector: 'app-payment',
@@ -172,7 +172,7 @@ export class PaymentComponent implements AfterViewInit {
       this.cart.set(cart);
 
       // Get payment methods
-      const methods = await this.cartService.getPaymentMethods(cart.region_id!);
+      const methods = await this.cartService.getPaymentMethods();
       this.paymentMethods.set(methods);
 
       // Set default payment method

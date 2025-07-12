@@ -2,9 +2,9 @@ import { Component, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { HttpTypes } from '@medusajs/types';
-import { ProductTypesService } from '../../core/services/product-types.service';
-import { CollectionsService } from '../../core/services/collections.service';
-import { ProductCardComponent } from '../../shared/components/product-card/product-card.component';
+import { ProductTypesService } from '@core/services/product-types.service';
+import { CollectionsService } from '@core/services/collections.service';
+import { ProductCardComponent } from '@shared/components/product-card/product-card.component';
 
 @Component({
   selector: 'app-home',

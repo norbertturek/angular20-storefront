@@ -3,7 +3,7 @@ import { Component, DestroyRef, ElementRef, HostListener, inject, signal, ViewCh
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterModule } from '@angular/router';
-import { ProductSearchResult, SearchService } from '../../../core/services/search.service';
+import { ProductSearchResult, SearchService } from '@core/services/search.service';
 
 @Component({
   selector: 'app-search',

@@ -1,21 +1,22 @@
 import { CommonModule } from '@angular/common';
 import { Component, computed, effect, inject, signal } from '@angular/core';
-import { FormsModule } from '@angular/forms';
+import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { HttpTypes } from '@medusajs/types';
-import { CartService } from '../../core/services/cart.service';
+import { CartService } from '@core/services/cart.service';
 import { DiscountCodeComponent } from './components/discount-code/discount-code.component';
 
 @Component({
   selector: 'app-checkout',
   standalone: true,
-  imports: [CommonModule, RouterModule, FormsModule, DiscountCodeComponent],
+  imports: [CommonModule, RouterModule, ReactiveFormsModule, DiscountCodeComponent],
   templateUrl: './checkout.component.html',
   styleUrls: ['./checkout.component.scss']
 })
 export class CheckoutComponent {
   private cartService = inject(CartService);
   private route = inject(ActivatedRoute);
+  private fb = inject(FormBuilder);
   router = inject(Router);
 
   cart = signal<HttpTypes.StoreCart | null>(null);
@@ -23,36 +24,36 @@ export class CheckoutComponent {
   errorMessage = signal<string | null>(null);
   shippingOptions = signal<any[]>([]);
   paymentOptions = signal<any[]>([]);
-  selectedShippingOption = '';
-  selectedPaymentOption = '';
-  sameAsBilling = true;
+  selectedShippingOption = signal<string>('');
+  selectedPaymentOption = signal<string>('');
+  sameAsBilling = signal<boolean>(true);
   _forceStep = signal<string | null>(null);
-  discountCode = '';
+  discountCode = signal<string>('');
   discountError = signal<string | null>(null);
 
-  emailForm = {
-    email: ''
-  };
+  emailForm = this.fb.group({
+    email: ['', [Validators.required, Validators.email]]
+  });
 
-  addressForm = {
-    shipping_address: {
-      first_name: '',
-      last_name: '',
-      address_1: '',
-      city: '',
-      postal_code: '',
-      country_code: '',
-      phone: ''
-    },
-    billing_address: {
-      first_name: '',
-      last_name: '',
-      address_1: '',
-      city: '',
-      postal_code: '',
-      country_code: ''
-    }
-  };
+  addressForm = this.fb.group({
+    shipping_address: this.fb.group({
+      first_name: ['', Validators.required],
+      last_name: ['', Validators.required],
+      address_1: ['', Validators.required],
+      city: ['', Validators.required],
+      postal_code: ['', Validators.required],
+      country_code: ['', Validators.required],
+      phone: ['']
+    }),
+    billing_address: this.fb.group({
+      first_name: ['', Validators.required],
+      last_name: ['', Validators.required],
+      address_1: ['', Validators.required],
+      city: ['', Validators.required],
+      postal_code: ['', Validators.required],
+      country_code: ['', Validators.required]
+    })
+  });
 
   currentStep = computed(() => {
     const forcedStep = this._forceStep();
@@ -107,11 +108,11 @@ export class CheckoutComponent {
   loadCartData(cart: any) {
     // Pre-fill forms with existing data
     if (cart.email) {
-      this.emailForm.email = cart.email;
+      this.emailForm.patchValue({ email: cart.email });
     }
 
     if (cart.shipping_address) {
-      this.addressForm.shipping_address = {
+      this.addressForm.get('shipping_address')?.patchValue({
         first_name: cart.shipping_address.first_name || '',
         last_name: cart.shipping_address.last_name || '',
         address_1: cart.shipping_address.address_1 || '',
@@ -119,19 +120,19 @@ export class CheckoutComponent {
         postal_code: cart.shipping_address.postal_code || '',
         country_code: cart.shipping_address.country_code || '',
         phone: cart.shipping_address.phone || ''
-      };
+      });
     }
 
     if (cart.billing_address) {
-       this.addressForm.billing_address = {
+       this.addressForm.get('billing_address')?.patchValue({
         first_name: cart.billing_address.first_name || '',
         last_name: cart.billing_address.last_name || '',
         address_1: cart.billing_address.address_1 || '',
         city: cart.billing_address.city || '',
         postal_code: cart.billing_address.postal_code || '',
         country_code: cart.billing_address.country_code || ''
-      };
-      this.sameAsBilling = false;
+      });
+      this.sameAsBilling.set(false);
     }
 
     if (cart.shipping_address) {
@@ -158,7 +159,7 @@ export class CheckoutComponent {
         
         this.shippingOptions.set(options);
         if (this.cart()?.shipping_methods?.length) {
-          this.selectedShippingOption = this.cart()?.shipping_methods?.[0]?.shipping_option_id || '';
+          this.selectedShippingOption.set(this.cart()?.shipping_methods?.[0]?.shipping_option_id || '');
         }
       } else {
         console.log('No cart ID available for shipping options');
@@ -197,7 +198,7 @@ export class CheckoutComponent {
     try {
       const cartId = this.cart()?.id;
       if (cartId) {
-        const cart = await this.cartService.updateCart(cartId, { email: this.emailForm.email });
+        const cart = await this.cartService.updateCart(cartId, { email: this.emailForm.get('email')?.value });
         this.cart.set(cart);
       }
     } catch (error) {
@@ -218,8 +219,8 @@ export class CheckoutComponent {
     if (cartId) {
       try {
         const cart = await this.cartService.updateCart(cartId, { 
-          shipping_address: this.addressForm.shipping_address,
-          billing_address: this.sameAsBilling ? this.addressForm.shipping_address : this.addressForm.billing_address
+          shipping_address: this.addressForm.get('shipping_address')?.value,
+          billing_address: this.sameAsBilling() ? this.addressForm.get('shipping_address')?.value : this.addressForm.get('billing_address')?.value
         });
         
         console.log('Addresses updated successfully, new cart:', cart);
@@ -254,7 +255,7 @@ export class CheckoutComponent {
     
     if (cartId) {
       try {
-        const cart = await this.cartService.addShippingMethod(cartId, this.selectedShippingOption);
+        const cart = await this.cartService.addShippingMethod(cartId, this.selectedShippingOption());
         console.log('Shipping method added successfully:', cart);
         this.cart.set(cart);
         await this.loadPaymentOptions();
@@ -297,29 +298,34 @@ export class CheckoutComponent {
   goToStep(step: string) {
     this._forceStep.set(step);
   }
+
+  onCheckboxChange(event: Event) {
+    const target = event.target as HTMLInputElement;
+    this.sameAsBilling.set(target.checked);
+    this.onSameAsBillingChange();
+  }
   
   onSameAsBillingChange() {
-    if (this.sameAsBilling) {
-      this.addressForm.billing_address = {
+    if (this.sameAsBilling()) {
+      this.addressForm.get('billing_address')?.patchValue({
         first_name: '',
         last_name: '',
         address_1: '',
         city: '',
         postal_code: '',
         country_code: ''
-      };
+      });
     }
   }
 
   isAddressFormValid(): boolean {
-    const requiredFields = ['first_name', 'last_name', 'address_1', 'city', 'postal_code', 'country_code'];
+    const shippingAddress = this.addressForm.get('shipping_address');
+    const billingAddress = this.addressForm.get('billing_address');
     
-    const isShippingValid = requiredFields.every(field => (this.addressForm.shipping_address as any)[field]);
-    if (!isShippingValid) return false;
+    if (!shippingAddress?.valid) return false;
 
-    if (!this.sameAsBilling) {
-      const isBillingValid = requiredFields.every(field => (this.addressForm.billing_address as any)[field]);
-      if (!isBillingValid) return false;
+    if (!this.sameAsBilling()) {
+      if (!billingAddress?.valid) return false;
     }
 
     return true;
@@ -373,14 +379,14 @@ export class CheckoutComponent {
   }
 
   async applyDiscount() {
-    if (!this.discountCode.trim()) return;
+    if (!this.discountCode().trim()) return;
     
     this.isLoading.set(true);
     this.discountError.set(null);
     try {
-      await this.cartService.applyDiscount(this.discountCode.trim());
+      await this.cartService.applyDiscount(this.discountCode().trim());
       await this.loadCart();
-      this.discountCode = '';
+      this.discountCode.set('');
     } catch (error) {
       console.error('Failed to apply discount', error);
       this.discountError.set('Invalid discount code. Please try again.');

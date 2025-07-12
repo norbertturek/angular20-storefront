@@ -1,7 +1,6 @@
 import { Injectable } from '@angular/core';
+import { environment } from '@environments/environment';
 import Medusa from '@medusajs/js-sdk';
-import { HttpTypes } from '@medusajs/types';
-import { environment } from '../../../environments/environment';
 
 @Injectable({
   providedIn: 'root'

@@ -1,15 +1,14 @@
-import { Component, inject, signal, computed, DestroyRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormsModule } from '@angular/forms';
-import { RouterModule } from '@angular/router';
-import { ActivatedRoute } from '@angular/router';
-import { HttpTypes } from '@medusajs/types';
-import { ProductsService } from '../../core/services/products.service';
-import { ProductTypesService } from '../../core/services/product-types.service';
-import { CollectionsService } from '../../core/services/collections.service';
-import { ProductCardComponent } from '../../shared/components/product-card/product-card.component';
+import { Component, computed, DestroyRef, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { RegionsService } from '../../core/services/regions.service';
+import { FormsModule } from '@angular/forms';
+import { ActivatedRoute, RouterModule } from '@angular/router';
+import { CollectionsService } from '@core/services/collections.service';
+import { ProductTypesService } from '@core/services/product-types.service';
+import { ProductsService } from '@core/services/products.service';
+import { RegionsService } from '@core/services/regions.service';
+import { HttpTypes } from '@medusajs/types';
+import { ProductCardComponent } from '@shared/components/product-card/product-card.component';
 
 @Component({
   selector: 'app-store',
@@ -31,9 +30,10 @@ export class StoreComponent {
   productTypes = signal<HttpTypes.StoreProductType[]>([]);
   collections = signal<HttpTypes.StoreCollection[]>([]);
   
-  selectedType: string = '';
-  selectedCollection: string = '';
-  searchQuery: string = '';
+  selectedType = signal<string>(''); 
+  selectedCollection = signal<string>('');
+  searchQuery = signal<string>('');
+  
   
   isLoading = signal(true);
   isLoadingMore = signal(false);
@@ -45,22 +45,22 @@ export class StoreComponent {
   
   // Computed signals
   pageTitle = computed(() => {
-    if (this.selectedType) {
-      return this.selectedType;
+    if (this.selectedType()) {
+      return this.selectedType();
     }
-    if (this.selectedCollection) {
-      const collection = this.collections().find(c => c.handle === this.selectedCollection);
+    if (this.selectedCollection()) {
+      const collection = this.collections().find(c => c.handle === this.selectedCollection());
       return collection?.title || 'Collection';
     }
-    if (this.searchQuery) {
-      return `Search results for "${this.searchQuery}"`;
+    if (this.searchQuery()) {
+      return `Search results for "${this.searchQuery()}"`;
     }
     return 'All Products';
   });
 
   pageDescription = computed(() => {
-    if (this.selectedCollection) {
-      const collection = this.collections().find(c => c.handle === this.selectedCollection);
+    if (this.selectedCollection()) {
+      const collection = this.collections().find(c => c.handle === this.selectedCollection());
       return collection?.metadata?.['description'] as string || null;
     }
     return null;
@@ -77,9 +77,9 @@ export class StoreComponent {
     this.route.queryParams.pipe(
       takeUntilDestroyed(this.destroyRef)
     ).subscribe(params => {
-      this.selectedType = params['type'] || '';
-      this.selectedCollection = params['collection'] || '';
-      this.searchQuery = params['q'] || '';
+      this.selectedType.set(params['type'] || '');
+      this.selectedCollection.set(params['collection'] || '');
+      this.searchQuery.set(params['q'] || '');
       this.loadProducts();
     });
   }
@@ -125,22 +125,22 @@ export class StoreComponent {
         params.region_id = regionId;
       }
 
-      if (this.selectedType) {
-        const selectedTypeObj = this.productTypes().find(t => t.value === this.selectedType);
+      if (this.selectedType()) {
+        const selectedTypeObj = this.productTypes().find(t => t.value === this.selectedType());
         if (selectedTypeObj) {
           params.type_id = [selectedTypeObj.id];
         }
       }
 
-      if (this.selectedCollection) {
-        const selectedCollectionObj = this.collections().find(c => c.handle === this.selectedCollection);
+      if (this.selectedCollection()) {
+        const selectedCollectionObj = this.collections().find(c => c.handle === this.selectedCollection());
         if (selectedCollectionObj) {
           params.collection_id = [selectedCollectionObj.id];
         }
       }
 
-      if (this.searchQuery.trim()) {
-        params.q = this.searchQuery.trim();
+      if (this.searchQuery().trim()) {
+        params.q = this.searchQuery().trim();
       }
 
       const response = await this.productsService.getProductsList(params);
