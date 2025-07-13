@@ -10,14 +10,14 @@
     </svg>
   </button>
   
-  <div class="search-input-container" [class.visible]="isSearchActive()">
+  <form class="search-input-container" [class.visible]="isSearchActive()">
     <input 
       #searchInput
       type="text" 
       class="search-input"
       placeholder="Search products..."
-      [(ngModel)]="searchQuery"
-      (input)="onSearchInput($event)"
+      [(ngModel)]="query"
+      name="query"
       (keydown)="onKeyDown($event)"
       (focus)="onSearchFocus()"
       autocomplete="off"
@@ -62,10 +62,10 @@
       </div>
     }
     
-    @if (isSearchActive() && searchQuery.length > 0 && searchResults().length === 0 && !isLoading()) {
+    @if (isSearchActive() && query().length > 0 && searchResults().length === 0 && !isLoading()) {
       <div class="search-results">
         <div class="no-results">
-          <p>No products found for "{{ searchQuery }}"</p>
+          <p>No products found for "{{ query() }}"</p>
         </div>
       </div>
     }
@@ -77,5 +77,5 @@
         </div>
       </div>
     }
-  </div>
+  </form>
 </div> 

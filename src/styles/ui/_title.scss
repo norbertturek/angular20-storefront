@@ -1,0 +1,44 @@
+// =============================================================================
+// TITLE COMPONENT STYLES
+// =============================================================================
+
+// Import required variables
+@use 'variables' as *;
+@use 'fonts' as *;
+
+.title {
+  font-family: $font-family-sans;
+  font-weight: $font-weight-bold;
+  line-height: $line-height-tight;
+  margin-bottom: $spacing-xl;
+  
+  // Alignment variants
+  &--left {
+    text-align: left;
+  }
+  
+  &--center {
+    text-align: center;
+  }
+  
+  &--right {
+    text-align: right;
+  }
+  
+  // Size variants
+  &--small {
+    font-size: $font-size-xl;
+  }
+  
+  &--medium {
+    font-size: $font-size-2xl;
+  }
+  
+  &--large {
+    font-size: $font-size-3xl;
+  }
+  
+  &--xl {
+    font-size: $font-size-4xl;
+  }
+} 

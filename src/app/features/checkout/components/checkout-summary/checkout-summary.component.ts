@@ -1,14 +1,15 @@
 import { CommonModule } from '@angular/common';
-import { Component, Input } from '@angular/core';
+import { ChangeDetectionStrategy, Component, input } from '@angular/core';
 import { RouterModule } from '@angular/router';
 
 import { CartTotalsComponent } from '@features/checkout/components/cart-totals/cart-totals.component';
-import { DiscountCodeComponent } from '@features/checkout/components/discount-code/discount-code.component';
+import { DiscountCodeComponent } from '@sharedComponents/discount-code/discount-code.component';
 
 @Component({
   selector: 'app-checkout-summary',
   standalone: true,
   imports: [CommonModule, RouterModule, CartTotalsComponent, DiscountCodeComponent],
+  changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="checkout-summary">
       <div class="summary-header">
@@ -23,7 +24,7 @@ import { DiscountCodeComponent } from '@features/checkout/components/discount-co
       </div>
 
       <div class="summary-items">
-        @for (item of cart.items; track item.id) {
+        @for (item of cart()?.items || []; track item.id) {
           <div class="cart-item">
             <div class="item-row">
               <a [routerLink]="['/products', item.product_handle]">
@@ -72,8 +73,8 @@ import { DiscountCodeComponent } from '@features/checkout/components/discount-co
       </div>
 
       <div class="summary-footer">
-        <app-discount-code [cart]="cart"></app-discount-code>
-        <app-cart-totals [cart]="cart"></app-cart-totals>
+        <app-discount-code [cart]="cart()"></app-discount-code>
+        <app-cart-totals [cart]="cart()"></app-cart-totals>
       </div>
     </div>
   `,
@@ -218,18 +219,13 @@ import { DiscountCodeComponent } from '@features/checkout/components/discount-co
   `]
 })
 export class CheckoutSummaryComponent {
-  @Input() cart: any;
+  cart = input<any>();
 
   get itemCount(): number {
-    return this.cart?.items?.length || 0;
+    return this.cart()?.items?.length || 0;
   }
 
-  formatPrice(amount: number): string {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'EUR'
-    }).format(amount);
-  }
+
 
   getProductImage(item: any): string | null {
     // Cart items have thumbnail directly
@@ -252,6 +248,9 @@ export class CheckoutSummaryComponent {
     const quantity = item.quantity || 1;
     const totalPrice = unitPrice * quantity;
     
-    return this.formatPrice(totalPrice);
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'EUR'
+    }).format(totalPrice);
   }
 } 

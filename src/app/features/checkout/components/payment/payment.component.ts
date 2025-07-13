@@ -1,15 +1,18 @@
+import { injectCartService } from '@/app/core/services/cart.service';
 import { CommonModule } from '@angular/common';
-import { AfterViewInit, Component, DestroyRef, computed, inject, signal } from '@angular/core';
+import { AfterViewInit, ChangeDetectionStrategy, Component, DestroyRef, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
-import { CartService } from '@core/services/cart.service';
-import { StripeService } from '@core/services/stripe.service';
+
+import { injectStripeService } from '@api/stripe.service';
+
 import { HttpTypes } from '@medusajs/types';
 
 @Component({
   selector: 'app-payment',
   standalone: true,
   imports: [CommonModule, FormsModule],
+  changeDetection: ChangeDetectionStrategy.OnPush,
   template: ` 
     <div class="payment-container">
       <h2>Payment</h2>
@@ -122,8 +125,8 @@ import { HttpTypes } from '@medusajs/types';
   styleUrls: ['./payment.component.scss']
 })
 export class PaymentComponent implements AfterViewInit {
-  private cartService = inject(CartService);
-  private stripeService = inject(StripeService);
+  private cartService = injectCartService();
+  private stripeService = injectStripeService();
   private router = inject(Router);
   private destroyRef = inject(DestroyRef);
 

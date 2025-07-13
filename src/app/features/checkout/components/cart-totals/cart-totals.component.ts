@@ -1,39 +1,40 @@
-import { Component, Input } from '@angular/core';
+import { Component, input, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 
 @Component({
   selector: 'app-cart-totals',
   standalone: true,
   imports: [CommonModule],
+  changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="cart-totals">
       <div class="totals-lines">
         <div class="total-line">
           <span class="label">Subtotal:</span>
-          <span class="value">{{ formatPrice(cart.subtotal || 0) }}</span>
+          <span class="value">{{ cart()?.subtotal || 0 | currency:'EUR' }}</span>
         </div>
 
-        @if (cart.discount_total && cart.discount_total > 0) {
+        @if (cart()?.discount_total && cart()?.discount_total > 0) {
           <div class="total-line">
             <span class="label">Discount:</span>
-            <span class="value discount">-{{ formatPrice(cart.discount_total) }}</span>
+            <span class="value discount">-{{ cart()?.discount_total | currency:'EUR' }}</span>
           </div>
         }
 
         <div class="total-line">
           <span class="label">Shipping:</span>
-          <span class="value">{{ formatPrice(cart.shipping_total || 0) }}</span>
+          <span class="value">{{ cart()?.shipping_total || 0 | currency:'EUR' }}</span>
         </div>
 
         <div class="total-line">
           <span class="label">Taxes:</span>
-          <span class="value">{{ formatPrice(cart.tax_total || 0) }}</span>
+          <span class="value">{{ cart()?.tax_total || 0 | currency:'EUR' }}</span>
         </div>
 
-        @if (cart.gift_card_total && cart.gift_card_total > 0) {
+        @if (cart()?.gift_card_total && cart()?.gift_card_total > 0) {
           <div class="total-line">
             <span class="label">Gift card:</span>
-            <span class="value discount">-{{ formatPrice(cart.gift_card_total) }}</span>
+            <span class="value discount">-{{ cart()?.gift_card_total | currency:'EUR' }}</span>
           </div>
         }
       </div>
@@ -42,7 +43,7 @@ import { CommonModule } from '@angular/common';
 
       <div class="total-final">
         <span class="label">Total:</span>
-        <span class="value">{{ formatPrice(cart.total || 0) }}</span>
+        <span class="value">{{ cart()?.total || 0 | currency:'EUR' }}</span>
       </div>
     </div>
   `,
@@ -102,12 +103,5 @@ import { CommonModule } from '@angular/common';
   `]
 })
 export class CartTotalsComponent {
-  @Input() cart: any;
-
-  formatPrice(amount: number): string {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'EUR'
-    }).format(amount);
-  }
+  cart = input<any>();
 } 

@@ -1,61 +1,75 @@
-import { Injectable, signal, Inject, PLATFORM_ID } from '@angular/core';
 import { isPlatformBrowser } from '@angular/common';
+import { inject, InjectionToken, PLATFORM_ID, signal } from '@angular/core';
 import { HttpTypes } from '@medusajs/types';
-import { MedusaService } from './medusa.service';
-import { RegionsService } from './regions.service';
+import { injectErrorHandlerService } from '@services/error-handler.service';
+import { injectMedusaService } from '@api/medusa.service';
+import { injectRegionsService } from '@api/regions.service';
+import { injectToastService } from '@services/toast.service';
 
 export interface AddToCartItem {
   variant_id: string;
   quantity: number;
 }
 
-@Injectable({
-  providedIn: 'root'
-})
-export class CartService {
-  private cartSignal = signal<HttpTypes.StoreCart | null>(null);
-  private cartId = signal<string | null>(null);
+export interface CartService {
+  cart: ReturnType<typeof signal<HttpTypes.StoreCart | null>>;
+  getCartQuantity: () => number;
+  getCartTotal: () => number;
+  getCartItems: () => HttpTypes.StoreCartLineItem[];
+  createCart: (regionId?: string) => Promise<HttpTypes.StoreCart>;
+  retrieveCart: () => Promise<HttpTypes.StoreCart | null>;
+  addToCart: (item: AddToCartItem) => Promise<void>;
+  addToCartLegacy: (variantId: string, quantity: number) => Promise<void>;
+  updateLineItem: (lineId: string, quantity: number) => Promise<void>;
+  removeLineItem: (lineId: string) => Promise<void>;
+  getShippingOptions: (cartId: string) => Promise<any[]>;
+  applyDiscount: (code: string) => Promise<void>;
+  removeDiscount: (code: string) => Promise<void>;
+  initiatePaymentSession: (providerId: string) => Promise<void>;
+  setPaymentMethod: (sessionId: string, data: any) => Promise<void>;
+  getPaymentMethods: () => Promise<any[]>;
+  createPaymentSessions: () => Promise<HttpTypes.StoreCart | null>;
+  placeOrder: () => Promise<any>;
+  updateCart: (cartId: string, data: any) => Promise<HttpTypes.StoreCart | null>;
+  addShippingMethod: (cartId: string, shippingOptionId: string) => Promise<HttpTypes.StoreCart | null>;
+  clearCart: () => void;
+  forceClearCart: () => void;
+  handleCorruptedCart: () => Promise<HttpTypes.StoreCart | null>;
+}
 
-  // Expose cart as readonly signal
-  cart = this.cartSignal.asReadonly();
+export function createCartService(): CartService {
+  const medusaService = injectMedusaService();
+  const regionsService = injectRegionsService();
+  const errorHandler = injectErrorHandlerService();
+  const toastService = injectToastService();
+  const platformId = inject(PLATFORM_ID);
 
-  constructor(
-    private medusaService: MedusaService,
-    private regionsService: RegionsService,
-    @Inject(PLATFORM_ID) private platformId: Object
-  ) {
-    if (isPlatformBrowser(this.platformId)) {
-      this.loadCartFromStorage();
+  const cartSignal = signal<HttpTypes.StoreCart | null>(null);
+  const cartId = signal<string | null>(null);
+
+  // Initialize cart from storage
+  if (isPlatformBrowser(platformId)) {
+    const storedCartId = localStorage.getItem('cart_id');
+    if (storedCartId) {
+      cartId.set(storedCartId);
+      retrieveCart();
     }
   }
 
-  private loadCartFromStorage() {
-    if (isPlatformBrowser(this.platformId)) {
-      const storedCartId = localStorage.getItem('cart_id');
-      if (storedCartId) {
-        this.cartId.set(storedCartId);
-        this.retrieveCart();
-      }
+  function saveCartToStorage(cartIdValue: string) {
+    if (isPlatformBrowser(platformId)) {
+      localStorage.setItem('cart_id', cartIdValue);
     }
+    cartId.set(cartIdValue);
   }
 
-  private saveCartToStorage(cartId: string) {
-    if (isPlatformBrowser(this.platformId)) {
-      localStorage.setItem('cart_id', cartId);
-    }
-    this.cartId.set(cartId);
-  }
-
-  async createCart(regionId?: string): Promise<HttpTypes.StoreCart> {
+  async function createCart(regionId?: string): Promise<HttpTypes.StoreCart> {
     try {
       // Get default region if none provided
       if (!regionId) {
-        console.log('No region provided, fetching regions...');
-        const regions = await this.regionsService.listRegions();
-        console.log('Available regions:', regions);
+        const regions = await regionsService.listRegions();
         if (regions.length > 0) {
           regionId = regions[0].id; // Use first available region
-          console.log('Using region:', regionId);
         }
       }
 
@@ -63,317 +77,351 @@ export class CartService {
         throw new Error('No region available for cart creation');
       }
 
-      console.log('Creating cart with region:', regionId);
-      const response = await this.medusaService.store.cart.create({
+      const response = await medusaService.store.cart.create({
         region_id: regionId
       });
-      
-      console.log('Cart created successfully:', response.cart.id);
-      this.saveCartToStorage(response.cart.id);
-      this.cartSignal.set(response.cart);
+      saveCartToStorage(response.cart.id);
+      cartSignal.set(response.cart);
       return response.cart;
     } catch (error) {
-      console.error('Error creating cart:', error);
+      errorHandler.handleError(error as Error, {
+        component: 'CartService',
+        action: 'createCart'
+      });
       throw error;
     }
   }
 
-  async retrieveCart(): Promise<HttpTypes.StoreCart | null> {
-    const cartId = this.cartId();
-    if (!cartId) return null;
+  async function retrieveCart(): Promise<HttpTypes.StoreCart | null> {
+    const currentCartId = cartId();
+    if (!currentCartId) return null;
 
     try {
-      const response = await this.medusaService.store.cart.retrieve(cartId);
-      this.cartSignal.set(response.cart);
+      const response = await medusaService.store.cart.retrieve(currentCartId);
+      cartSignal.set(response.cart);
       return response.cart;
     } catch (error) {
-      console.error('Error retrieving cart:', error);
+      errorHandler.handleError(error as Error, {
+        component: 'CartService',
+        action: 'retrieveCart'
+      });
       
       // If cart has invalid customer reference or doesn't exist, clear it
       if (error instanceof Error && (error.message.includes('was not found') || error.message.includes('not found'))) {
-        console.log('Cart has invalid reference, clearing cart...');
+        // Cart has invalid reference, clearing cart
       }
       
-      this.clearCart();
+      clearCart();
       return null;
     }
   }
 
-  async addToCart(item: AddToCartItem): Promise<void> {
-    console.log('Adding to cart:', item);
-    let cart = this.cartSignal();
+  async function addToCart(item: AddToCartItem): Promise<void> {
+    let cart = cartSignal();
     
     if (!cart) {
-      console.log('No cart exists, creating new cart...');
       // Create a new cart if none exists
-      cart = await this.createCart();
-      console.log('Created new cart:', cart.id);
+      cart = await createCart();
     }
 
     try {
-      console.log('Adding line item to cart:', cart.id, item);
-      await this.medusaService.store.cart.createLineItem(cart.id, {
+      await medusaService.store.cart.createLineItem(cart.id, {
         variant_id: item.variant_id,
         quantity: item.quantity
       });
       
-      console.log('Line item added successfully, retrieving cart...');
-      await this.retrieveCart();
-      console.log('Cart retrieved successfully');
+      await retrieveCart();
     } catch (error) {
-      console.error('Error adding to cart:', error);
+      errorHandler.handleError(error as Error, {
+        component: 'CartService',
+        action: 'addToCart'
+      });
       throw error;
     }
   }
 
-  // Legacy method for backward compatibility
-  async addToCartLegacy(variantId: string, quantity: number): Promise<void> {
-    return this.addToCart({ variant_id: variantId, quantity });
+  async function addToCartLegacy(variantId: string, quantity: number): Promise<void> {
+    return addToCart({ variant_id: variantId, quantity });
   }
 
-  async updateLineItem(lineId: string, quantity: number): Promise<void> {
-    const cartId = this.cartId();
-    if (!cartId) return;
+  async function updateLineItem(lineId: string, quantity: number): Promise<void> {
+    const currentCartId = cartId();
+    if (!currentCartId) return;
 
     try {
-      await this.medusaService.store.cart.updateLineItem(cartId, lineId, {
+      await medusaService.store.cart.updateLineItem(currentCartId, lineId, {
         quantity
       });
       
-      await this.retrieveCart();
+      await retrieveCart();
     } catch (error) {
-      console.error('Error updating line item:', error);
+      errorHandler.handleError(error as Error, {
+        component: 'CartService',
+        action: 'updateLineItem'
+      });
       throw error;
     }
   }
 
-  async removeLineItem(lineId: string): Promise<void> {
-    const cartId = this.cartId();
-    if (!cartId) return;
+  async function removeLineItem(lineId: string): Promise<void> {
+    const currentCartId = cartId();
+    if (!currentCartId) return;
 
     try {
-      await this.medusaService.store.cart.deleteLineItem(cartId, lineId);
-      await this.retrieveCart();
+      await medusaService.store.cart.deleteLineItem(currentCartId, lineId);
+      await retrieveCart();
     } catch (error) {
-      console.error('Error removing line item:', error);
+      errorHandler.handleError(error as Error, {
+        component: 'CartService',
+        action: 'removeLineItem'
+      });
       throw error;
     }
   }
 
-  getCartQuantity(): number {
-    const cart = this.cartSignal();
+  function getCartQuantity(): number {
+    const cart = cartSignal();
     if (!cart?.items) return 0;
     
     return cart.items.reduce((total, item) => total + item.quantity, 0);
   }
 
-  getCartTotal(): number {
-    const cart = this.cartSignal();
+  function getCartTotal(): number {
+    const cart = cartSignal();
     if (!cart) return 0;
     
     return cart.total || 0;
   }
 
-  getCartItems(): HttpTypes.StoreCartLineItem[] {
-    const cart = this.cartSignal();
+  function getCartItems(): HttpTypes.StoreCartLineItem[] {
+    const cart = cartSignal();
     return cart?.items || [];
   }
 
-  async getShippingOptions(cartId: string): Promise<any[]> {
-    if (!cartId) return [];
+  async function getShippingOptions(cartIdValue: string): Promise<any[]> {
+    if (!cartIdValue) return [];
 
     try {
-      console.log('Fetching shipping options for cart:', cartId);
-      const data = await this.medusaService.fetch<{ shipping_options: any[] }>(`/store/shipping-options?cart_id=${cartId}`);
-      console.log('Raw shipping options response:', data);
+      const data = await medusaService.fetch<{ shipping_options: any[] }>(`/store/shipping-options?cart_id=${cartIdValue}`);
       return data.shipping_options || [];
     } catch (error) {
-      console.error('Error fetching shipping options:', error);
+      errorHandler.handleError(error as Error, {
+        component: 'CartService',
+        action: 'getShippingOptions'
+      });
       return [];
     }
   }
 
-  async applyDiscount(code: string): Promise<void> {
-    const cartId = this.cartId();
-    if (!cartId) return;
+  async function applyDiscount(code: string): Promise<void> {
+    const currentCartId = cartId();
+    if (!currentCartId) return;
 
     try {
-      await this.medusaService.store.cart.update(cartId, {
+      await medusaService.store.cart.update(currentCartId, {
         promo_codes: [code]
       });
       
-      await this.retrieveCart();
+      await retrieveCart();
+      toastService.success('Discount applied successfully');
     } catch (error) {
-      console.error('Error applying discount:', error);
+      errorHandler.handleError(error as Error, {
+        component: 'CartService',
+        action: 'applyDiscount'
+      });
+      toastService.error('Failed to apply discount. Please check the code and try again.');
       throw error;
     }
   }
 
-  async removeDiscount(code: string): Promise<void> {
-    const cartId = this.cartId();
-    if (!cartId) return;
+  async function removeDiscount(code: string): Promise<void> {
+    const currentCartId = cartId();
+    if (!currentCartId) return;
 
     try {
-      const cart = this.cartSignal();
+      const cart = cartSignal();
       if (!cart) return;
 
-      // Remove the specific code from existing promo codes
-      const currentCodes = cart.promotions?.map(p => p.code).filter((code): code is string => Boolean(code)) || [];
-      const updatedCodes = currentCodes.filter(c => c !== code);
+      // Handle promo codes properly
+      const currentPromoCodes = (cart as any).promo_codes || [];
+      const updatedPromoCodes = currentPromoCodes.filter((promo: any) => promo.code !== code);
 
-      await this.medusaService.store.cart.update(cartId, {
-        promo_codes: updatedCodes
+      await medusaService.store.cart.update(currentCartId, {
+        promo_codes: updatedPromoCodes
       });
       
-      await this.retrieveCart();
+      await retrieveCart();
+      toastService.success('Discount removed successfully');
     } catch (error) {
-      console.error('Error removing discount:', error);
+      errorHandler.handleError(error as Error, {
+        component: 'CartService',
+        action: 'removeDiscount'
+      });
+      toastService.error('Failed to remove discount. Please try again.');
       throw error;
     }
   }
 
-  async initiatePaymentSession(providerId: string): Promise<void> {
-    const cartId = this.cartId();
-    if (!cartId) return;
+  async function initiatePaymentSession(providerId: string): Promise<void> {
+    const currentCartId = cartId();
+    if (!currentCartId) return;
 
     try {
-      await this.medusaService.fetch(`/store/carts/${cartId}/payment-sessions`, {
+      // Use the correct method for creating payment sessions
+      await medusaService.fetch(`/store/carts/${currentCartId}/payment-sessions`, {
+        method: 'POST'
+      });
+      await retrieveCart();
+    } catch (error) {
+      errorHandler.handleError(error as Error, {
+        component: 'CartService',
+        action: 'initiatePaymentSession'
+      });
+      throw error;
+    }
+  }
+
+  async function setPaymentMethod(sessionId: string, data: any): Promise<void> {
+    try {
+      await medusaService.fetch(`/store/carts/payment-sessions/${sessionId}`, {
         method: 'POST',
-        body: {
-          provider_id: providerId
-        }
+        body: data
       });
-      
-      await this.retrieveCart();
+      await retrieveCart();
     } catch (error) {
-      console.error('Error initiating payment session:', error);
+      errorHandler.handleError(error as Error, {
+        component: 'CartService',
+        action: 'setPaymentMethod'
+      });
       throw error;
     }
   }
 
-  async setPaymentMethod(sessionId: string, data: any): Promise<void> {
-    const cartId = this.cartId();
-    if (!cartId) return;
-
+  async function getPaymentMethods(): Promise<any[]> {
     try {
-      await this.medusaService.fetch(`/store/carts/${cartId}/payment-sessions/${sessionId}`, {
-        method: 'POST',
-        body: {
-          data: data
-        }
-      });
-      
-      await this.retrieveCart();
-    } catch (error) {
-      console.error('Error setting payment method:', error);
-      throw error;
-    }
-  }
-
-  async getPaymentMethods(): Promise<any[]> {
-    const cart = this.cartSignal();
-    if (!cart) return [];
-
-    try {
-      const data = await this.medusaService.fetch<{ payment_providers: any[] }>(`/store/payment-providers?cart_id=${cart.id}`);
+      const data = await medusaService.fetch<{ payment_providers: any[] }>('/store/payment-providers');
       return data.payment_providers || [];
     } catch (error) {
-      console.error('Error fetching payment methods:', error);
+      errorHandler.handleError(error as Error, {
+        component: 'CartService',
+        action: 'getPaymentMethods'
+      });
       return [];
     }
   }
 
-  async createPaymentSessions(): Promise<HttpTypes.StoreCart | null> {
-    const cartId = this.cartId();
-    if (!cartId) return null;
+  async function createPaymentSessions(): Promise<HttpTypes.StoreCart | null> {
+    const currentCartId = cartId();
+    if (!currentCartId) return null;
 
     try {
-      const { cart } = await this.medusaService.fetch<{ cart: HttpTypes.StoreCart }>(`/store/carts/${cartId}/payment-sessions`, {
-        method: 'POST',
+      await medusaService.fetch(`/store/carts/${currentCartId}/payment-sessions`, {
+        method: 'POST'
       });
-      this.cartSignal.set(cart);
-      return cart;
+      await retrieveCart();
+      return cartSignal();
     } catch (error) {
-      console.error('Error creating payment sessions:', error);
-      return null;
+      errorHandler.handleError(error as Error, {
+        component: 'CartService',
+        action: 'createPaymentSessions'
+      });
+      throw error;
     }
   }
 
-  async placeOrder(): Promise<any> {
-    const cartId = this.cartId();
-    if (!cartId) return null;
+  async function placeOrder(): Promise<any> {
+    const currentCartId = cartId();
+    if (!currentCartId) return null;
 
     try {
-      const response = await this.medusaService.store.cart.complete(cartId);
-      console.log('Order placement response:', response);
-      this.clearCart(); // Clear cart after successful order
+      const response = await medusaService.store.cart.complete(currentCartId);
+      clearCart();
       return response;
     } catch (error) {
-      console.error('Error placing order:', error);
+      errorHandler.handleError(error as Error, {
+        component: 'CartService',
+        action: 'placeOrder'
+      });
       throw error;
     }
   }
 
-  async updateCart(cartId: string, data: any): Promise<HttpTypes.StoreCart | null> {
-    if (!cartId) return null;
-
+  async function updateCart(cartIdValue: string, data: any): Promise<HttpTypes.StoreCart | null> {
     try {
-      console.log('Updating cart with data:', data);
-      console.log('Cart ID:', cartId);
-      const { cart } = await this.medusaService.store.cart.update(cartId, data, {}, {});
-      console.log('Cart updated successfully:', cart);
-      this.cartSignal.set(cart);
-      return cart;
-    } catch (error: any) {
-      console.error('Error updating cart:', error);
-      console.error('Error details:', error);
-      
-      // Just throw the error - don't try to create new cart
-      // The UI should handle cart corruption by refreshing the page
-      throw error;
-    }
-  }
-
-  async addShippingMethod(cartId: string, shippingOptionId: string): Promise<HttpTypes.StoreCart | null> {
-    if (!cartId || !shippingOptionId) return null;
-
-    try {
-      const { cart } = await this.medusaService.store.cart.addShippingMethod(cartId, {
-        option_id: shippingOptionId
-      }, {});
-      this.cartSignal.set(cart);
-      return cart;
+      const response = await medusaService.store.cart.update(cartIdValue, data);
+      cartSignal.set(response.cart);
+      return response.cart;
     } catch (error) {
-      console.error('Error adding shipping method:', error);
+      errorHandler.handleError(error as Error, {
+        component: 'CartService',
+        action: 'updateCart'
+      });
       throw error;
     }
   }
 
-  clearCart(): void {
-    if (isPlatformBrowser(this.platformId)) {
+  async function addShippingMethod(cartIdValue: string, shippingOptionId: string): Promise<HttpTypes.StoreCart | null> {
+    try {
+      const response = await medusaService.store.cart.addShippingMethod(cartIdValue, {
+        option_id: shippingOptionId
+      });
+      cartSignal.set(response.cart);
+      return response.cart;
+    } catch (error) {
+      errorHandler.handleError(error as Error, {
+        component: 'CartService',
+        action: 'addShippingMethod'
+      });
+      throw error;
+    }
+  }
+
+  function clearCart(): void {
+    cartSignal.set(null);
+    cartId.set(null);
+    if (isPlatformBrowser(platformId)) {
       localStorage.removeItem('cart_id');
     }
-    this.cartId.set(null);
-    this.cartSignal.set(null);
   }
 
-  // Helper method to manually clear cart for debugging
-  forceClearCart(): void {
-    console.log('Force clearing cart...');
-    this.clearCart();
+  function forceClearCart(): void {
+    clearCart();
   }
 
-  // Method to handle corrupted cart - clear it and create a new one
-  async handleCorruptedCart(): Promise<HttpTypes.StoreCart | null> {
-    console.log('Handling corrupted cart - clearing and creating new...');
-    this.clearCart();
-    try {
-      const newCart = await this.createCart();
-      console.log('New cart created after corruption:', newCart.id);
-      return newCart;
-    } catch (error) {
-      console.error('Failed to create new cart after corruption:', error);
-      return null;
-    }
+  async function handleCorruptedCart(): Promise<HttpTypes.StoreCart | null> {
+    clearCart();
+    return createCart();
   }
-} 
+
+  return {
+    cart: cartSignal,
+    getCartQuantity,
+    getCartTotal,
+    getCartItems,
+    createCart,
+    retrieveCart,
+    addToCart,
+    addToCartLegacy,
+    updateLineItem,
+    removeLineItem,
+    getShippingOptions,
+    applyDiscount,
+    removeDiscount,
+    initiatePaymentSession,
+    setPaymentMethod,
+    getPaymentMethods,
+    createPaymentSessions,
+    placeOrder,
+    updateCart,
+    addShippingMethod,
+    clearCart,
+    forceClearCart,
+    handleCorruptedCart
+  };
+}
+
+export function injectCartService(): CartService {
+  return inject(CART_SERVICE);
+}
+
+export const CART_SERVICE = new InjectionToken<CartService>('CartService'); 

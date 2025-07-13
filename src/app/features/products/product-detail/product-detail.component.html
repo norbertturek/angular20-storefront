@@ -1,166 +1,31 @@
 <div class="product-detail-container">
   @if (!isLoading() && product()) {
     <div class="product-detail">
-      <div class="product-images">
-        <div class="main-image">
-          <img 
-            [src]="selectedImageUrl()" 
-            [alt]="product()?.title"
-            class="product-image"
-          />
-        </div>
-        
-        @if (productImages().length > 1) {
-          <div class="image-thumbnails">
-            @for (image of productImages(); track image.id) {
-              <img 
-                [src]="image.url" 
-                [alt]="product()?.title"
-                class="thumbnail"
-                [class.active]="selectedImageUrl() === image.url"
-                (click)="selectImage(image.url)"
-              />
-            }
-          </div>
-        }
-      </div>
+      <app-product-images 
+        [images]="productImages()"
+        [productTitle]="product()?.title || ''"
+        (imageSelected)="selectImage($event)"
+      ></app-product-images>
 
-      <div class="product-info">
-        @if (product()?.collection) {
-          <a 
-            [routerLink]="['/store']" 
-            [queryParams]="{collection: product()?.collection?.handle}"
-            class="product-collection-link"
-          >
-            <p class="product-collection">{{ product()?.collection?.title }}</p>
-          </a>
-        }
-        
-        <h1>{{ product()?.title }}</h1>
-        
-        @if (selectedVariant()?.calculated_price) {
-          <div class="product-price">
-            @if (hasDiscountPrice()) {
-              <div>
-                <span class="original-price">{{ getFormattedOriginalPrice() }}</span>
-                <span class="sale-price">{{ getFormattedCalculatedPrice() }}</span>
-              </div>
-            } @else {
-              <span class="price">{{ getFormattedCalculatedPrice() }}</span>
-            }
-          </div>
-        }
-        
-        @if (product()?.description) {
-          <div class="product-description">
-            <p>{{ product()?.description }}</p>
-          </div>
-        }
-        
-        @if (productVariants().length > 1) {
-          <div class="variant-selection">
-            <h3>Select Variant</h3>
-            <div class="variants-grid">
-              @for (variant of productVariants(); track variant.id) {
-                <button 
-                  class="variant-button"
-                  [class.selected]="selectedVariant()?.id === variant.id"
-                  [class.disabled]="!isVariantAvailable(variant)"
-                  (click)="selectVariant(variant)"
-                  [disabled]="!isVariantAvailable(variant)"
-                >
-                  {{ variant.title }}
-                  @if (!isVariantAvailable(variant)) {
-                    <span class="out-of-stock">Out of Stock</span>
-                  }
-                </button>
-              }
-            </div>
-          </div>
-        }
-
-        <div class="quantity-cart">
-          <div class="quantity-selector">
-            <label for="quantity">Quantity:</label>
-            <div class="quantity-controls">
-              <button 
-                type="button" 
-                (click)="decreaseQuantity()"
-                [disabled]="quantity() <= 1"
-                class="quantity-btn"
-              >
-                -
-              </button>
-              <input 
-                type="number" 
-                id="quantity"
-                [ngModel]="quantity()"
-                (ngModelChange)="quantity.set($event)"
-                [min]="1"
-                [max]="getMaxQuantity()"
-                class="quantity-input"
-              />
-              <button 
-                type="button" 
-                (click)="increaseQuantity()"
-                [disabled]="quantity() >= getMaxQuantity()"
-                class="quantity-btn"
-              >
-                +
-              </button>
-            </div>
-          </div>
-          
-          <button 
-            class="add-to-cart-btn"
-            [disabled]="!selectedVariant() || !isVariantAvailable(selectedVariant()!) || isAddingToCart()"
-            (click)="addToCart()"
-          >
-            @if (!isAddingToCart()) {
-              <span>Add to Cart</span>
-            } @else {
-              <span>Adding...</span>
-            }
-          </button>
-        </div>
-        
-        @if (addToCartMessage()) {
-          <div class="cart-message" [class.success]="addToCartSuccess()">
-            {{ addToCartMessage() }}
-          </div>
-        }
-
-        <div class="product-details">
-          @if (product()?.type) {
-            <div class="detail-item">
-              <strong>Type:</strong> {{ product()?.type?.value }}
-            </div>
-          }
-          @if (productTags().length > 0) {
-            <div class="detail-item">
-              <strong>Tags:</strong>
-              @for (tag of productTags(); track tag.id; let last = $last) {
-                <span>{{ tag.value }}@if (!last) {<span>, </span>}</span>
-              }
-            </div>
-          }
-          @if (selectedVariant()?.sku) {
-            <div class="detail-item">
-              <strong>SKU:</strong> {{ selectedVariant()?.sku }}
-            </div>
-          }
-        </div>
-      </div>
+      <app-product-info
+        [product]="product()"
+        [selectedVariant]="selectedVariant()"
+        [quantity]="quantity()"
+        [maxQuantity]="getMaxQuantity()"
+        [isAddingToCart]="isAddingToCart()"
+        [addToCartMessage]="addToCartMessage()"
+        [addToCartSuccess]="addToCartSuccess()"
+        (variantSelected)="selectVariant($event)"
+        (quantityChanged)="quantity.set($event)"
+        (addToCartClicked)="addToCart()"
+      ></app-product-info>
     </div>
   }
   
   @if (isLoading()) {
     <div class="loading-state">
       <div class="container">
-        <div class="loading-spinner">
-          <div class="spinner"></div>
-          <p>Loading product...</p>
-        </div>
+        <app-loading-spinner message="Loading product..."></app-loading-spinner>
       </div>
     </div>
   }
@@ -171,7 +36,7 @@
         <div class="error-message">
           <h2>Product not found</h2>
           <p>{{ error() }}</p>
-          <button (click)="goBack()" class="back-button">Go Back</button>
+          <app-button (clicked)="goBack()" label="Go Back" variant="secondary"></app-button>
         </div>
       </div>
     </div>
@@ -199,7 +64,7 @@
             <h3 class="cta-heading">{{ getCollectionMetadata('product_page_cta_heading') }}</h3>
             @if (getCollectionMetadata('product_page_cta_link') && product()?.collection?.handle) {
               <a 
-                [routerLink]="['/store']" 
+                [routerLink]="['/products']" 
                 [queryParams]="{collection: product()?.collection?.handle}"
                 class="cta-link"
               >
@@ -215,19 +80,32 @@
   <div class="related-products-section">
     <div class="container">
       <h2 class="section-title">Related Products</h2>
-      @if (relatedProducts().length > 0) {
-        <div class="related-products-grid">
-          @for (relatedProduct of relatedProducts(); track relatedProduct.id) {
-            <app-product-card [product]="relatedProduct" size="normal"></app-product-card>
-          }
+      @defer {
+        @if (relatedProducts().length > 0) {
+          <div class="related-products-grid">
+            @for (relatedProduct of relatedProducts(); track relatedProduct.id) {
+              <app-product-card [product]="relatedProduct" size="normal"></app-product-card>
+            }
+          </div>
+        } @else if (isLoadingRelated()) {
+          <div class="loading-related">
+            <app-loading-spinner message="Loading related products..." variant="compact"></app-loading-spinner>
+          </div>
+        } @else {
+          <p class="no-related">No related products found.</p>
+        }
+      } @placeholder {
+        <div class="related-products-loading">
+          <app-loading-spinner message="Loading related products..." variant="compact"></app-loading-spinner>
         </div>
-      } @else if (isLoadingRelated()) {
-        <div class="loading-related">
-          <div class="spinner"></div>
-          <p>Loading related products...</p>
+      } @loading {
+        <div class="related-products-loading">
+          <app-loading-spinner message="Loading related products..." variant="compact"></app-loading-spinner>
         </div>
-      } @else {
-        <p class="no-related">No related products found.</p>
+      } @error {
+        <div class="related-products-error">
+          <p>Failed to load related products. Please try again.</p>
+        </div>
       }
     </div>
   </div>

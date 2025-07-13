@@ -1,22 +1,26 @@
 import { CommonModule } from '@angular/common';
-import { Component, computed, effect, inject, signal } from '@angular/core';
-import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
-import { ActivatedRoute, Router, RouterModule } from '@angular/router';
+import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
+import { FormsModule } from '@angular/forms';
+import { Router, RouterModule } from '@angular/router';
+
 import { HttpTypes } from '@medusajs/types';
-import { CartService } from '@core/services/cart.service';
-import { DiscountCodeComponent } from './components/discount-code/discount-code.component';
+
+import { injectCartService } from '@services/cart.service';
+import { injectToastService } from '@services/toast.service';
+
+import { DiscountCodeComponent } from '@sharedComponents/discount-code/discount-code.component';
 
 @Component({
   selector: 'app-checkout',
   standalone: true,
-  imports: [CommonModule, RouterModule, ReactiveFormsModule, DiscountCodeComponent],
+  imports: [CommonModule, FormsModule, RouterModule, DiscountCodeComponent],
   templateUrl: './checkout.component.html',
-  styleUrls: ['./checkout.component.scss']
+  styleUrls: ['./checkout.component.scss'],
+  changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class CheckoutComponent {
-  private cartService = inject(CartService);
-  private route = inject(ActivatedRoute);
-  private fb = inject(FormBuilder);
+  private cartService = injectCartService();
+  private toastService = injectToastService();
   router = inject(Router);
 
   cart = signal<HttpTypes.StoreCart | null>(null);
@@ -31,28 +35,51 @@ export class CheckoutComponent {
   discountCode = signal<string>('');
   discountError = signal<string | null>(null);
 
-  emailForm = this.fb.group({
-    email: ['', [Validators.required, Validators.email]]
+  // Signal-based form state
+  email = signal('');
+
+  // Shipping address signals
+  shippingFirstName = signal('');
+  shippingLastName = signal('');
+  shippingAddress1 = signal('');
+  shippingCity = signal('');
+  shippingPostalCode = signal('');
+  shippingCountryCode = signal('');
+  shippingPhone = signal('');
+
+  // Billing address signals
+  billingFirstName = signal('');
+  billingLastName = signal('');
+  billingAddress1 = signal('');
+  billingCity = signal('');
+  billingPostalCode = signal('');
+  billingCountryCode = signal('');
+
+  // Computed form validation
+  isEmailValid = computed(() => {
+    const emailValue = this.email();
+    return emailValue && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailValue);
   });
 
-  addressForm = this.fb.group({
-    shipping_address: this.fb.group({
-      first_name: ['', Validators.required],
-      last_name: ['', Validators.required],
-      address_1: ['', Validators.required],
-      city: ['', Validators.required],
-      postal_code: ['', Validators.required],
-      country_code: ['', Validators.required],
-      phone: ['']
-    }),
-    billing_address: this.fb.group({
-      first_name: ['', Validators.required],
-      last_name: ['', Validators.required],
-      address_1: ['', Validators.required],
-      city: ['', Validators.required],
-      postal_code: ['', Validators.required],
-      country_code: ['', Validators.required]
-    })
+  isShippingAddressValid = computed(() => {
+    return this.shippingFirstName() && 
+           this.shippingLastName() && 
+           this.shippingAddress1() && 
+           this.shippingCity() && 
+           this.shippingPostalCode() && 
+           this.shippingCountryCode();
+  });
+
+  isBillingAddressValid = computed(() => {
+    if (this.sameAsBilling()) {
+      return this.isShippingAddressValid();
+    }
+    return this.billingFirstName() && 
+           this.billingLastName() && 
+           this.billingAddress1() && 
+           this.billingCity() && 
+           this.billingPostalCode() && 
+           this.billingCountryCode();
   });
 
   currentStep = computed(() => {
@@ -71,17 +98,37 @@ export class CheckoutComponent {
     return 'review';
   });
 
-  constructor() {
+  // --- PERFORMANCE OPTIMIZATION ---
+  // Move effect out of constructor to class field
+  cartEffect = (() => {
     // Use effect to reactively update cart when cart service changes
-    effect(() => {
-      const cart = this.cartService.cart();
-      console.log('Checkout received cart data:', cart);
-      if (cart) {
-        this.cart.set(cart);
-        this.loadCartData(cart);
-      }
-    });
+    const cart = this.cartService.cart();
+    if (cart) {
+      this.cart.set(cart);
+      this.loadCartData(cart);
+    }
+  })();
+
+  // Computed for selected shipping method name
+  selectedShippingMethodName = computed(() => {
+    const cart = this.cart();
+    if (!cart?.shipping_methods?.length) return '';
     
+    const method = cart.shipping_methods[0];
+    const option = this.shippingOptions().find(opt => opt.id === method.shipping_option_id);
+    return option?.name || 'Standard Shipping';
+  });
+
+  // Computed for selected shipping method price
+  selectedShippingMethodPrice = computed(() => {
+    const cart = this.cart();
+    if (!cart?.shipping_methods?.length) return 0;
+    
+    const method = cart.shipping_methods[0];
+    return method.amount || 0;
+  });
+
+  constructor() {
     // Initial load
     this.loadCart();
   }
@@ -98,7 +145,6 @@ export class CheckoutComponent {
         this.errorMessage.set('No cart found. Please add items to your cart first.');
       }
     } catch (error) {
-      console.error('Failed to load cart', error);
       this.errorMessage.set('Failed to load cart. Please try again.');
     } finally {
       this.isLoading.set(false);
@@ -108,30 +154,26 @@ export class CheckoutComponent {
   loadCartData(cart: any) {
     // Pre-fill forms with existing data
     if (cart.email) {
-      this.emailForm.patchValue({ email: cart.email });
+      this.email.set(cart.email);
     }
 
     if (cart.shipping_address) {
-      this.addressForm.get('shipping_address')?.patchValue({
-        first_name: cart.shipping_address.first_name || '',
-        last_name: cart.shipping_address.last_name || '',
-        address_1: cart.shipping_address.address_1 || '',
-        city: cart.shipping_address.city || '',
-        postal_code: cart.shipping_address.postal_code || '',
-        country_code: cart.shipping_address.country_code || '',
-        phone: cart.shipping_address.phone || ''
-      });
+      this.shippingFirstName.set(cart.shipping_address.first_name || '');
+      this.shippingLastName.set(cart.shipping_address.last_name || '');
+      this.shippingAddress1.set(cart.shipping_address.address_1 || '');
+      this.shippingCity.set(cart.shipping_address.city || '');
+      this.shippingPostalCode.set(cart.shipping_address.postal_code || '');
+      this.shippingCountryCode.set(cart.shipping_address.country_code || '');
+      this.shippingPhone.set(cart.shipping_address.phone || '');
     }
 
     if (cart.billing_address) {
-       this.addressForm.get('billing_address')?.patchValue({
-        first_name: cart.billing_address.first_name || '',
-        last_name: cart.billing_address.last_name || '',
-        address_1: cart.billing_address.address_1 || '',
-        city: cart.billing_address.city || '',
-        postal_code: cart.billing_address.postal_code || '',
-        country_code: cart.billing_address.country_code || ''
-      });
+      this.billingFirstName.set(cart.billing_address.first_name || '');
+      this.billingLastName.set(cart.billing_address.last_name || '');
+      this.billingAddress1.set(cart.billing_address.address_1 || '');
+      this.billingCity.set(cart.billing_address.city || '');
+      this.billingPostalCode.set(cart.billing_address.postal_code || '');
+      this.billingCountryCode.set(cart.billing_address.country_code || '');
       this.sameAsBilling.set(false);
     }
 
@@ -150,22 +192,14 @@ export class CheckoutComponent {
     try {
       const cartId = this.cart()?.id;
       if (cartId) {
-        console.log('Loading shipping options for cart:', cartId);
-        console.log('Cart shipping address:', this.cart()?.shipping_address);
-        
         const options = await this.cartService.getShippingOptions(cartId);
-        console.log('Shipping options loaded:', options);
-        console.log('Shipping options count:', options.length);
         
         this.shippingOptions.set(options);
         if (this.cart()?.shipping_methods?.length) {
           this.selectedShippingOption.set(this.cart()?.shipping_methods?.[0]?.shipping_option_id || '');
         }
-      } else {
-        console.log('No cart ID available for shipping options');
       }
     } catch (error) {
-      console.error('Failed to load shipping options', error);
       this.errorMessage.set('Failed to load shipping options. Please try again.');
       this.shippingOptions.set([]);
     } finally {
@@ -185,7 +219,6 @@ export class CheckoutComponent {
         this.paymentOptions.set(paymentSessions);
       }
     } catch (error) {
-      console.error('Failed to load payment options', error);
       this.errorMessage.set('Failed to load payment options. Please try again.');
     } finally {
       this.isLoading.set(false);
@@ -198,11 +231,10 @@ export class CheckoutComponent {
     try {
       const cartId = this.cart()?.id;
       if (cartId) {
-        const cart = await this.cartService.updateCart(cartId, { email: this.emailForm.get('email')?.value });
+        const cart = await this.cartService.updateCart(cartId, { email: this.email() });
         this.cart.set(cart);
       }
     } catch (error) {
-      console.error('Failed to update email', error);
       this.errorMessage.set('Failed to update email. Please try again.');
     } finally {
       this.isLoading.set(false);
@@ -212,36 +244,38 @@ export class CheckoutComponent {
   async submitAddresses() {
     this.isLoading.set(true);
     this.errorMessage.set(null);
-    const cartId = this.cart()?.id;
-    console.log('Submitting addresses for cart:', cartId);
-    console.log('Address data:', this.addressForm);
-    
-    if (cartId) {
-      try {
-        const cart = await this.cartService.updateCart(cartId, { 
-          shipping_address: this.addressForm.get('shipping_address')?.value,
-          billing_address: this.sameAsBilling() ? this.addressForm.get('shipping_address')?.value : this.addressForm.get('billing_address')?.value
+    try {
+      const cartId = this.cart()?.id;
+      if (cartId) {
+        const shippingAddress = {
+          first_name: this.shippingFirstName(),
+          last_name: this.shippingLastName(),
+          address_1: this.shippingAddress1(),
+          city: this.shippingCity(),
+          postal_code: this.shippingPostalCode(),
+          country_code: this.shippingCountryCode(),
+          phone: this.shippingPhone()
+        };
+
+        const billingAddress = this.sameAsBilling() ? shippingAddress : {
+          first_name: this.billingFirstName(),
+          last_name: this.billingLastName(),
+          address_1: this.billingAddress1(),
+          city: this.billingCity(),
+          postal_code: this.billingPostalCode(),
+          country_code: this.billingCountryCode()
+        };
+
+        const cart = await this.cartService.updateCart(cartId, {
+          shipping_address: shippingAddress,
+          billing_address: billingAddress
         });
-        
-        console.log('Addresses updated successfully, new cart:', cart);
         this.cart.set(cart);
-        await this.loadShippingOptions();
-        this.isLoading.set(false);
-      } catch (err: any) {
-        console.error('Failed to update addresses', err);
-        
-        // Check if it's an unknown error which might indicate cart corruption
-        const errorMessage = err?.message || '';
-        if (errorMessage.includes('unknown error') || errorMessage.includes('An unknown error occurred')) {
-          this.errorMessage.set('Cart update failed. Please refresh the page and try again.');
-        } else {
-          this.errorMessage.set('Failed to update addresses. Please try again.');
-        }
-        
-        this.isLoading.set(false);
+        this.loadShippingOptions();
       }
-    } else {
-      console.error('No cart ID available');
+    } catch (error) {
+      this.errorMessage.set('Failed to update addresses. Please try again.');
+    } finally {
       this.isLoading.set(false);
     }
   }
@@ -250,29 +284,23 @@ export class CheckoutComponent {
     this.isLoading.set(true);
     this.errorMessage.set(null);
     const cartId = this.cart()?.id;
-    console.log('Submitting shipping method for cart:', cartId);
-    console.log('Selected shipping option:', this.selectedShippingOption);
     
     if (cartId) {
       try {
         const cart = await this.cartService.addShippingMethod(cartId, this.selectedShippingOption());
-        console.log('Shipping method added successfully:', cart);
         this.cart.set(cart);
         await this.loadPaymentOptions();
         this.isLoading.set(false);
       } catch (err) {
-        console.error('Failed to add shipping method', err);
         this.errorMessage.set('Failed to add shipping method. Please try again.');
         this.isLoading.set(false);
       }
     } else {
-      console.error('No cart ID available for shipping method');
       this.isLoading.set(false);
     }
   }
 
   async submitPayment() {
-    console.log("Submit payment clicked, but nothing happens yet.");
     // This is where we would normally proceed to review or place order
   }
 
@@ -282,14 +310,14 @@ export class CheckoutComponent {
     try {
       const order = await this.cartService.placeOrder();
       if (order) {
-        alert('Order placed successfully!');
+        // Toast will be shown by CartService
         this.router.navigate(['/']);
       } else {
         this.errorMessage.set('Failed to place order. Please try again.');
       }
     } catch (error) {
-      console.error('Failed to place order', error);
       this.errorMessage.set('Failed to place order. Please try again.');
+      // Toast will be shown by CartService
     } finally {
       this.isLoading.set(false);
     }
@@ -307,48 +335,22 @@ export class CheckoutComponent {
   
   onSameAsBillingChange() {
     if (this.sameAsBilling()) {
-      this.addressForm.get('billing_address')?.patchValue({
-        first_name: '',
-        last_name: '',
-        address_1: '',
-        city: '',
-        postal_code: '',
-        country_code: ''
-      });
+      this.billingFirstName.set('');
+      this.billingLastName.set('');
+      this.billingAddress1.set('');
+      this.billingCity.set('');
+      this.billingPostalCode.set('');
+      this.billingCountryCode.set('');
     }
   }
 
-  isAddressFormValid(): boolean {
-    const shippingAddress = this.addressForm.get('shipping_address');
-    const billingAddress = this.addressForm.get('billing_address');
-    
-    if (!shippingAddress?.valid) return false;
-
-    if (!this.sameAsBilling()) {
-      if (!billingAddress?.valid) return false;
-    }
-
-    return true;
-  }
+  isAddressFormValid = computed(() => {
+    return this.isShippingAddressValid() && this.isBillingAddressValid();
+  });
 
   getSelectedShippingMethodName(): string {
-    const selectedMethod = this.shippingOptions().find(
-      (option) => option.id === this.cart()?.shipping_methods?.[0]?.shipping_option_id
-    );
-    return selectedMethod ? selectedMethod.name : 'N/A';
+    return this.selectedShippingMethodName();
   }
-
-  formatPrice(amount: number): string {
-    const cart = this.cart();
-    if (!cart) return '';
-    const currencyCode = cart.region?.currency_code || 'eur';
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: currencyCode,
-    }).format(amount);
-  }
-
-
 
   async updateQuantity(lineId: string, newQuantity: number) {
     if (newQuantity < 1) return;
@@ -357,9 +359,10 @@ export class CheckoutComponent {
     try {
       await this.cartService.updateLineItem(lineId, newQuantity);
       await this.loadCart();
+      // Toast will be shown by CartService
     } catch (error) {
-      console.error('Failed to update quantity', error);
       this.errorMessage.set('Failed to update quantity. Please try again.');
+      // Toast will be shown by CartService
     } finally {
       this.isLoading.set(false);
     }
@@ -370,9 +373,10 @@ export class CheckoutComponent {
     try {
       await this.cartService.removeLineItem(lineId);
       await this.loadCart();
+      // Toast will be shown by CartService
     } catch (error) {
-      console.error('Failed to remove item', error);
       this.errorMessage.set('Failed to remove item. Please try again.');
+      // Toast will be shown by CartService
     } finally {
       this.isLoading.set(false);
     }
@@ -387,9 +391,10 @@ export class CheckoutComponent {
       await this.cartService.applyDiscount(this.discountCode().trim());
       await this.loadCart();
       this.discountCode.set('');
+      // Toast will be shown by CartService
     } catch (error) {
-      console.error('Failed to apply discount', error);
       this.discountError.set('Invalid discount code. Please try again.');
+      // Toast will be shown by CartService
     } finally {
       this.isLoading.set(false);
     }
@@ -397,8 +402,8 @@ export class CheckoutComponent {
 
   // Helper method to manually clear cart for debugging
   forceClearCart(): void {
-    console.log('Force clearing cart...');
     this.cartService.forceClearCart();
     window.location.reload();
   }
 }
+

@@ -1,0 +1,97 @@
+<div class="product-list">
+  <app-product-list-filters
+    [productTypes]="productTypes()"
+    [collections]="collections()"
+    [initialFilters]="currentFilters()"
+    (filtersChanged)="onFiltersChanged($event)"
+  ></app-product-list-filters>
+
+  <div class="container">
+    <div class="product-list-header">
+      <h1>{{ pageTitle() }}</h1>
+      @if (pageDescription()) {
+        <p>{{ pageDescription() }}</p>
+      }
+    </div>
+
+    <div class="results-info">
+      @if (totalProducts() > 0) {
+        <span>
+          Showing {{ products().length }} of {{ totalProducts() }} products
+        </span>
+      }
+    </div>
+
+    @if (isLoading()) {
+      <div class="loading-state">
+        <div class="loading-spinner">
+          <div class="spinner"></div>
+          <p>Loading products...</p>
+        </div>
+      </div>
+    }
+
+    @if (error() && !isLoading()) {
+      <div class="error-state">
+        <div class="error-message">
+          <h2>Oops! Something went wrong</h2>
+          <p>{{ error() }}</p>
+          <app-button (clicked)="retryLoadProducts()" label="Try Again" variant="secondary"></app-button>
+        </div>
+      </div>
+    }
+
+    @if (!isLoading() && !error()) {
+      <div class="products-section">
+        @if (products().length === 0) {
+          <div class="empty-state">
+            <h2>No products found</h2>
+            <p>Try adjusting your filters or search terms.</p>
+          </div>
+        }
+
+        @if (products().length > 0) {
+          @defer {
+            <div class="products-grid">
+              @for (product of products(); track product.id) {
+                <div class="product-item">
+                  <app-product-card [product]="product"></app-product-card>
+                </div>
+              }
+            </div>
+          } @placeholder {
+            <div class="products-loading">
+              <div class="loading-spinner">
+                <div class="spinner"></div>
+                <p>Loading products...</p>
+              </div>
+            </div>
+          } @loading {
+            <div class="products-loading">
+              <div class="loading-spinner">
+                <div class="spinner"></div>
+                <p>Loading products...</p>
+              </div>
+            </div>
+          } @error {
+            <div class="products-error">
+              <p>Failed to load products. Please try again.</p>
+            </div>
+          }
+        }
+
+        @if (hasMoreProducts() && products().length > 0) {
+          <div class="load-more">
+            <app-button 
+              (clicked)="loadMoreProducts()" 
+              [disabled]="isLoadingMore()"
+              class="load-more-btn"
+              [label]="isLoadingMore() ? 'Loading...' : 'Load More Products'"
+              variant="primary"
+            ></app-button>
+          </div>
+        }
+      </div>
+    }
+  </div>
+</div> 

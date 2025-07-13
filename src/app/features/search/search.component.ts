@@ -1,70 +1,114 @@
 import { CommonModule } from '@angular/common';
-import { Component, DestroyRef, inject, signal } from '@angular/core';
-import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { ChangeDetectionStrategy, Component, computed, effect, inject, signal } from '@angular/core';
+import { toSignal } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
-import { ProductSearchResult, SearchService } from '@core/services/search.service';
+
+import { ProductSearchResult, SearchService } from './search.service';
 
 @Component({
   selector: 'app-search',
   standalone: true,
   imports: [CommonModule, FormsModule, RouterModule],
   templateUrl: './search.component.html',
-  styleUrls: ['./search.component.scss']
+  styleUrls: ['./search.component.scss'],
+  changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class SearchPageComponent {
-  private route = inject(ActivatedRoute);
-  private router = inject(Router);
-  private searchService = inject(SearchService);
-  private destroyRef = inject(DestroyRef);
+  // Services
+  private readonly route = inject(ActivatedRoute);
+  private readonly router = inject(Router);
+  private readonly searchService = inject(SearchService);
 
-  searchQuery = signal('');
-  searchResults = signal<ProductSearchResult[]>([]);
-  isLoading = signal(false);
+  // State signals
+  readonly searchQuery = signal('');
+  readonly searchResults = signal<ProductSearchResult[]>([]);
+  readonly isLoading = signal(false);
+
+  // Route signals
+  readonly queryParams = toSignal(this.route.queryParams, { 
+    initialValue: this.route.snapshot.queryParams 
+  });
+
+  // Computed values
+  readonly initialQuery = computed(() => {
+    const params = this.queryParams();
+    return params['q'] || '';
+  });
+
+  readonly searchInfo = computed(() => {
+    const query = this.searchQuery();
+    const results = this.searchResults();
+    const loading = this.isLoading();
+    
+    if (!query || query.length === 0) return '';
+    if (loading) return `Searching for "${query}"...`;
+    return `${results.length} result${results.length !== 1 ? 's' : ''} for "${query}"`;
+  });
+
+  readonly formattedResults = computed(() => {
+    return this.searchResults().map(result => ({
+      ...result,
+      formattedPrice: result.price?.calculated_price || null
+    }));
+  });
+
+  // Private state
+  private searchTimeout: ReturnType<typeof setTimeout> | undefined;
 
   constructor() {
-    // Get initial search query from URL with automatic cleanup
-    this.route.queryParams.pipe(
-      takeUntilDestroyed(this.destroyRef)
-    ).subscribe(params => {
-      const query = params['q'] || '';
-      if (query !== this.searchQuery()) {
-        this.searchQuery.set(query);
-        if (query) {
-          this.performSearch();
-        }
+    // Effects
+    effect(() => {
+      const initialQuery = this.initialQuery();
+      const currentQuery = this.searchQuery();
+      
+      if (initialQuery && currentQuery === '') {
+        this.searchQuery.set(initialQuery);
+        this.performSearch();
       }
     });
   }
 
-  onSearchInput() {
-    // Update URL without triggering search
-    this.updateUrl();
+  // Public methods
+  onSearchInput(): void {
+    if (this.searchTimeout) {
+      clearTimeout(this.searchTimeout);
+    }
+    
+    this.searchTimeout = setTimeout(() => {
+      this.updateUrl();
+    }, 300);
   }
 
-  performSearch() {
+  onSearchButtonClick(): void {
+    this.performSearch();
+  }
+
+  onSearchEnter(): void {
+    this.performSearch();
+  }
+
+  async performSearch(): Promise<void> {
     if (!this.searchQuery() || this.searchQuery().trim().length === 0) {
       this.searchResults.set([]);
       return;
     }
 
-    this.isLoading.set(true);
-    this.updateUrl();
+    try {
+      this.isLoading.set(true);
+      this.updateUrl();
 
-    this.searchService.search(this.searchQuery()).subscribe({
-      next: (results) => {
-        this.searchResults.set(results);
-        this.isLoading.set(false);
-      },
-      error: (error) => {
-        console.error('Search error:', error);
-        this.searchResults.set([]);
-        this.isLoading.set(false);
-      }
-    });
+      const results = await this.searchService.search(this.searchQuery());
+      this.searchResults.set(results);
+    } catch (error) {
+      this.searchResults.set([]);
+    } finally {
+      this.isLoading.set(false);
+    }
   }
 
-  private updateUrl() {
+  // Private methods
+  private updateUrl(): void {
     this.router.navigate([], {
       relativeTo: this.route,
       queryParams: { q: this.searchQuery() || null },

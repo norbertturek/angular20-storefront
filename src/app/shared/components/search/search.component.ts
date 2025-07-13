@@ -1,100 +1,94 @@
 import { CommonModule } from '@angular/common';
-import { Component, DestroyRef, ElementRef, HostListener, inject, signal, ViewChild } from '@angular/core';
-import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { ChangeDetectionStrategy, Component, effect, ElementRef, HostListener, inject, signal, viewChild } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterModule } from '@angular/router';
-import { ProductSearchResult, SearchService } from '@core/services/search.service';
+
+import { ProductSearchResult, SearchService } from '@features/search/search.service';
 
 @Component({
   selector: 'app-search',
   standalone: true,
   imports: [CommonModule, FormsModule, RouterModule],
   templateUrl: './search.component.html',
-  styleUrls: ['./search.component.scss']
+  styleUrls: ['./search.component.scss'],
+  changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class SearchComponent {
-  @ViewChild('searchInput') searchInput!: ElementRef<HTMLInputElement>;
+  // View children
+  readonly searchInput = viewChild<ElementRef<HTMLInputElement>>('searchInput');
   
-  private searchService = inject(SearchService);
-  private router = inject(Router);
-  private destroyRef = inject(DestroyRef);
+  // Services
+  private readonly searchService = inject(SearchService);
+  private readonly router = inject(Router);
   
-  searchQuery = '';
-  isSearchActive = signal(false);
-  searchResults = signal<ProductSearchResult[]>([]);
-  isLoading = signal(false);
-  
+  // State signals
+  readonly query = signal('');
+  readonly isSearchActive = signal(false);
+  readonly searchResults = signal<ProductSearchResult[]>([]);
+  readonly isLoading = signal(false);
+
   constructor() {
-    // Listen for search results with automatic cleanup
-    this.searchService.searchWithDebounce(this.searchQuery).pipe(
-      takeUntilDestroyed(this.destroyRef)
-    ).subscribe(results => {
-      this.searchResults.set(results);
-      this.isLoading.set(false);
+    // Effects
+    effect(() => {
+      const q = this.query();
+      if (q.trim().length > 0) {
+        this.performSearch(q);
+      } else {
+        this.searchResults.set([]);
+        this.isLoading.set(false);
+      }
     });
   }
-  
-  toggleSearch() {
+
+  // Public methods
+  async performSearch(query: string): Promise<void> {
+    try {
+      this.isLoading.set(true);
+      const results = await this.searchService.searchWithDebounce(query);
+      this.searchResults.set(results);
+    } catch (error) {
+      this.searchResults.set([]);
+    } finally {
+      this.isLoading.set(false);
+    }
+  }
+
+  toggleSearch(): void {
     const newState = !this.isSearchActive();
     this.isSearchActive.set(newState);
     
     if (newState) {
-      // Focus input after DOM update
       setTimeout(() => {
-        this.searchInput?.nativeElement.focus();
+        this.searchInput()?.nativeElement.focus();
       }, 100);
     } else {
       this.clearSearch();
     }
   }
   
-  onSearchInput(event: Event) {
-    const target = event.target as HTMLInputElement;
-    this.searchQuery = target.value;
-    
-    if (this.searchQuery.trim().length > 0) {
-      this.isLoading.set(true);
-      this.searchService.searchWithDebounce(this.searchQuery).pipe(
-        takeUntilDestroyed(this.destroyRef)
-      ).subscribe(results => {
-        this.searchResults.set(results);
-        this.isLoading.set(false);
-      });
-    } else {
-      this.searchResults.set([]);
-      this.isLoading.set(false);
-    }
-  }
-  
-  onKeyDown(event: KeyboardEvent) {
+  onKeyDown(event: KeyboardEvent): void {
+    const q = this.query();
     if (event.key === 'Escape') {
       this.clearSearch();
       this.isSearchActive.set(false);
-    } else if (event.key === 'Enter' && this.searchQuery.trim().length > 0) {
-      // Navigate to search results page
-      this.router.navigate(['/search'], { queryParams: { q: this.searchQuery } });
+    } else if (event.key === 'Enter' && q.trim().length > 0) {
+      this.router.navigate(['/search'], { queryParams: { q } });
       this.isSearchActive.set(false);
       this.clearSearch();
     }
   }
   
-  onSearchFocus() {
+  onSearchFocus(): void {
     this.isSearchActive.set(true);
   }
   
-  onResultClick() {
+  onResultClick(): void {
     this.isSearchActive.set(false);
     this.clearSearch();
   }
   
-  private clearSearch() {
-    this.searchQuery = '';
-    this.searchResults.set([]);
-    this.isLoading.set(false);
-  }
-  
   @HostListener('document:click', ['$event'])
-  onDocumentClick(event: Event) {
+  onDocumentClick(event: Event): void {
     const target = event.target as HTMLElement;
     const searchContainer = target.closest('.search-container');
     
@@ -102,5 +96,12 @@ export class SearchComponent {
       this.isSearchActive.set(false);
       this.clearSearch();
     }
+  }
+
+  // Private methods
+  private clearSearch(): void {
+    this.query.set('');
+    this.searchResults.set([]);
+    this.isLoading.set(false);
   }
 } 

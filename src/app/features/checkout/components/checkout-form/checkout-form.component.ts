@@ -1,4 +1,4 @@
-import { Component, Input, Output, EventEmitter, signal } from '@angular/core';
+import { Component, input, output, signal, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 
@@ -6,33 +6,34 @@ import { FormsModule } from '@angular/forms';
   selector: 'app-checkout-form',
   standalone: true,
   imports: [CommonModule, FormsModule],
+  changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="checkout-form">
       <div class="steps-indicator">
-        <div class="step" [class.active]="currentStep === 'email'" [class.completed]="isStepCompleted('email')">
+        <div class="step" [class.active]="currentStep() === 'email'" [class.completed]="isStepCompleted('email')">
           <div class="step-number">1</div>
           <div class="step-label">Contact</div>
         </div>
-        <div class="step" [class.active]="currentStep === 'delivery'" [class.completed]="isStepCompleted('delivery')">
+        <div class="step" [class.active]="currentStep() === 'delivery'" [class.completed]="isStepCompleted('delivery')">
           <div class="step-number">2</div>
           <div class="step-label">Delivery</div>
         </div>
-        <div class="step" [class.active]="currentStep === 'shipping'" [class.completed]="isStepCompleted('shipping')">
+        <div class="step" [class.active]="currentStep() === 'shipping'" [class.completed]="isStepCompleted('shipping')">
           <div class="step-number">3</div>
           <div class="step-label">Shipping</div>
         </div>
-        <div class="step" [class.active]="currentStep === 'payment'" [class.completed]="isStepCompleted('payment')">
+        <div class="step" [class.active]="currentStep() === 'payment'" [class.completed]="isStepCompleted('payment')">
           <div class="step-number">4</div>
           <div class="step-label">Payment</div>
         </div>
-        <div class="step" [class.active]="currentStep === 'review'" [class.completed]="isStepCompleted('review')">
+        <div class="step" [class.active]="currentStep() === 'review'" [class.completed]="isStepCompleted('review')">
           <div class="step-number">5</div>
           <div class="step-label">Review</div>
         </div>
       </div>
 
       <div class="form-content">
-        @switch (currentStep) {
+        @switch (currentStep()) {
           @case ('email') {
             <div class="step-content">
               <h2 class="step-title">Contact Information</h2>
@@ -625,9 +626,9 @@ import { FormsModule } from '@angular/forms';
   `]
 })
 export class CheckoutFormComponent {
-  @Input() cart: any;
-  @Input() currentStep: string = 'email';
-  @Output() stepChange = new EventEmitter<string>();
+  cart = input<any>();
+  currentStep = input<string>('email');
+  stepChange = output<string>();
 
   emailForm = {
     email: ''
@@ -658,7 +659,7 @@ export class CheckoutFormComponent {
 
   isStepCompleted(step: string): boolean {
     const steps = ['email', 'delivery', 'shipping', 'payment', 'review'];
-    const currentIndex = steps.indexOf(this.currentStep);
+    const currentIndex = steps.indexOf(this.currentStep());
     const stepIndex = steps.indexOf(step);
     return stepIndex < currentIndex;
   }
