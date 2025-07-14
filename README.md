@@ -1,59 +1,76 @@
 # Storefront
 
-This project was generated using [Angular CLI](https://github.com/angular/angular-cli) version 19.2.3.
+The project is based on **Angular 20+** – modern, modular, standalone, signals, OnPush, lazy loading, typed, DRY, and follows the best frontend practices.
+
+## Architecture and conventions
+- Modularity: layers `core/`, `features/`, `shared/`, `ui/`.
+- Standalone components, signals, computed, effect, OnPush, DI via `inject`.
+- Naming: PascalCase for classes, camelCase for variables, consistent suffixes (`.component.ts`, `.service.ts`, `.spec.ts`).
+- Template syntax: modern Angular 20+ (`@if`, `@for`, `@switch`).
+- No legacy APIs (`ngModule`, `@Input`, `@Output` – everything via signals).
 
 ## Development server
 
-To start a local development server, run:
+To start a local development server:
 
 ```bash
 ng serve
 ```
 
-Once the server is running, open your browser and navigate to `http://localhost:4200/`. The application will automatically reload whenever you modify any of the source files.
-
-## Code scaffolding
-
-Angular CLI includes powerful code scaffolding tools. To generate a new component, run:
-
-```bash
-ng generate component component-name
-```
-
-For a complete list of available schematics (such as `components`, `directives`, or `pipes`), run:
-
-```bash
-ng generate --help
-```
+The app is available at `http://localhost:4200/`. Hot reload works automatically.
 
 ## Building
 
-To build the project run:
+To build the project (production-ready build):
 
 ```bash
 ng build
 ```
 
-This will compile your project and store the build artifacts in the `dist/` directory. By default, the production build optimizes your application for performance and speed.
+Artifacts will be in the `dist/` directory. By default, the build is optimized for production.
 
-## Running unit tests
+## Tests
 
-To execute unit tests with the [Karma](https://karma-runner.github.io) test runner, use the following command:
+### Unit tests
 
 ```bash
 ng test
 ```
 
-## Running end-to-end tests
+Tests are run with [Karma](https://karma-runner.github.io) or [Jest] (if configured). Recommended coverage: at least 80% of the code.
 
-For end-to-end (e2e) testing, run:
+### End-to-end (e2e) tests
+
+The project does not include e2e by default – recommended tools: [Cypress](https://www.cypress.io/), [Playwright](https://playwright.dev/).
+
+### Linting and formatting
+
+Recommended tools: ESLint, Prettier. Add to CI/CD.
+
+### Coverage
+
+To generate a code coverage report:
 
 ```bash
-ng e2e
+ng test --code-coverage
 ```
 
-Angular CLI does not come with an end-to-end testing framework by default. You can choose one that suits your needs.
+## Security and production
+- Input validation, error sanitization, no unsafe HTML.
+- Recommended: dependency audit (`npm audit`), penetration tests, security checklists.
+- Make sure the production server has CSP, HSTS, rate limiting, monitoring.
+- Add monitoring, production error logging, backup policy.
 
-## Additional Resources
+## CI/CD and deployment
+- Recommended: CI/CD pipeline (tests, lint, build, deploy, coverage badge).
+- Document environment variables, deployment process, production checklist.
+- Example: GitHub Actions, GitLab CI, Vercel, Netlify, Docker.
 
-For more information on using the Angular CLI, including detailed command references, visit the [Angular CLI Overview and Command Reference](https://angular.dev/tools/cli) page.
+## Additional resources
+- [Angular CLI Overview and Command Reference](https://angular.dev/tools/cli)
+- [Angular 20+ Standalone Components](https://angular.dev/guide/standalone-components)
+- [Angular Signals](https://angular.dev/reference/signals)
+
+---
+
+**The project is compliant with the latest Angular 20+ standards and best frontend practices.**
