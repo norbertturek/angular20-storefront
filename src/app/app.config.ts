@@ -7,12 +7,13 @@ import { routes } from './app.routes';
 
 // Import all services
 import { AuthService } from '@/app/core/api/auth.service';
-import { createMedusaService, MEDUSA_SERVICE } from '@api/medusa.service';
-import { createRegionsService, REGIONS_SERVICE } from '@api/regions.service';
-import { createStripeService, STRIPE_SERVICE } from '@api/stripe.service';
-import { createErrorHandlerService, ERROR_HANDLER_SERVICE } from '@services/error-handler.service';
-import { createToastService, TOAST_SERVICE } from '@services/toast.service';
-import { CART_SERVICE, createCartService } from './core/services/cart.service';
+import { MedusaService } from '@api/medusa.service';
+import { RegionsService } from '@api/regions.service';
+import { StripeService } from '@api/stripe.service';
+import { ErrorHandlerService } from '@services/error-handler.service';
+import { ToastService } from '@services/toast.service';
+import { CartService } from './core/services/cart.service';
+import { CollectionsService } from './core/services/collections.service';
 import { CartDrawerService } from './features/cart/cart-drawer.service';
 import { ProductsService } from './features/products/products.service';
 import { SearchService } from './features/search/search.service';
@@ -32,19 +33,18 @@ export const appConfig: ApplicationConfig = {
     ),
     provideClientHydration(),
     provideHttpClient(withFetch()),
-    
-    // Register all services as providers
-    { provide: CART_SERVICE, useFactory: createCartService },
-    { provide: REGIONS_SERVICE, useFactory: createRegionsService },
+
+    // Register all services as providers (class-based only)
+    CartService,
+    CollectionsService,
     ProductsService,
     SearchService,
-    { provide: STRIPE_SERVICE, useFactory: createStripeService },
-    { provide: MEDUSA_SERVICE, useFactory: createMedusaService },
+    StripeService,
+    MedusaService,
     CartDrawerService,
-    { provide: ERROR_HANDLER_SERVICE, useFactory: createErrorHandlerService },
+    ErrorHandlerService,
     AuthService,
-    
-    // Functional service providers
-    { provide: TOAST_SERVICE, useFactory: createToastService }
+    ToastService,
+    RegionsService,
   ]
 };

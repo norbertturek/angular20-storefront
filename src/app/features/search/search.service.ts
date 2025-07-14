@@ -1,6 +1,6 @@
-import { inject, signal, computed } from '@angular/core';
-import { injectMedusaService } from '@api/medusa.service';
-import { injectRegionsService } from '@api/regions.service';
+import { signal, computed, Injectable } from '@angular/core';
+import { MedusaService } from '@api/medusa.service';
+import { RegionsService } from '@api/regions.service';
 
 export interface SearchHit {
   id: string;
@@ -32,9 +32,12 @@ export interface ProductSearchResult extends SearchHit {
   product?: any;
 }
 
+@Injectable({ providedIn: 'root' })
 export class SearchService {
-  private medusaService = injectMedusaService();
-  private regionsService = injectRegionsService();
+  constructor(
+    private medusaService: MedusaService,
+    private regionsService: RegionsService
+  ) {}
 
   private readonly searchEndpoint = 'http://localhost:7700';
   private readonly searchApiKey = 'yoursecretmasterkey';

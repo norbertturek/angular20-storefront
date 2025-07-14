@@ -1,37 +1,29 @@
-import { InjectionToken, inject } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { environment } from '@environments/environment';
 import Medusa from '@medusajs/js-sdk';
 
-export interface MedusaService {
-  client: Medusa['client'];
-  store: Medusa['store'];
-  admin: Medusa['admin'];
-  fetch: <T>(endpoint: string, options?: {
-    method?: string;
-    query?: Record<string, any>;
-    body?: any;
-  }) => Promise<T>;
-}
-
-export function createMedusaService(): MedusaService {
-  const sdk = new Medusa({
+ @Injectable({ providedIn: 'root' })
+export class MedusaService {
+  private sdk = new Medusa({
     baseUrl: environment.medusaBackendUrl,
     debug: !environment.production,
     publishableKey: environment.medusaPublishableKey
   });
 
-  // Get auth headers (for now empty, but ready for future auth implementation)
-  function getAuthHeaders(): Record<string, string> {
-    // TODO: Implement authentication headers when needed
-    // const token = localStorage.getItem('auth_token');
-    // if (token) {
-    //   return { authorization: `Bearer ${token}` };
-    // }
-    return {};
+  get client() {
+    return this.sdk.client;
+  }
+
+  get store() {
+    return this.sdk.store;
+  }
+
+  get admin() {
+    return this.sdk.admin;
   }
 
   // Helper method for custom API calls
-  async function medusaFetch<T>(endpoint: string, options?: {
+  async fetch<T>(endpoint: string, options?: {
     method?: string;
     query?: Record<string, any>;
     body?: any;
@@ -65,23 +57,4 @@ export function createMedusaService(): MedusaService {
     }
     return response.json();
   }
-
-  return {
-    get client() {
-      return sdk.client;
-    },
-    get store() {
-      return sdk.store;
-    },
-    get admin() {
-      return sdk.admin;
-    },
-    fetch: medusaFetch
-  };
-}
-
-export function injectMedusaService(): MedusaService {
-  return inject(MEDUSA_SERVICE);
-}
-
-export const MEDUSA_SERVICE = new InjectionToken<MedusaService>('MedusaService'); 
+} 

@@ -1,7 +1,7 @@
-import { computed, signal } from '@angular/core';
+import { computed, signal, Injectable } from '@angular/core';
 
-import { injectMedusaService } from '@api/medusa.service';
-import { injectRegionsService } from '@api/regions.service';
+import { MedusaService } from '@api/medusa.service';
+import { RegionsService } from '@api/regions.service';
 
 import { HttpTypes } from '@medusajs/types';
 
@@ -23,9 +23,12 @@ export interface ProductListResponse {
   nextPage?: number | null;
 }
 
+@Injectable({ providedIn: 'root' })
 export class ProductsService {
-  private medusaService = injectMedusaService();
-  private regionsService = injectRegionsService();
+  constructor(
+    private medusaService: MedusaService,
+    private regionsService: RegionsService
+  ) {}
 
   // Signal-based state
   private productsState = signal<ProductListResponse>({ products: [], count: 0 });

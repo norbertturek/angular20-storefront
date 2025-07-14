@@ -3,9 +3,9 @@ import { ChangeDetectionStrategy, Component, effect, inject, signal, computed } 
 import { RouterModule } from '@angular/router';
 
 
-import { injectCartService } from '@services/cart.service';
-import { injectErrorHandlerService } from '@services/error-handler.service';
-import { injectToastService } from '@services/toast.service';
+import { CartService } from '@services/cart.service';
+import { ErrorHandlerService } from '@services/error-handler.service';
+import { ToastService } from '@services/toast.service';
 
 import { CartDrawerService } from '@features/cart/cart-drawer.service';
 
@@ -518,9 +518,9 @@ import { ButtonComponent } from '@ui/button/button.component';
 export class CartDrawerComponent {
   // Services
   readonly cartDrawerService = inject(CartDrawerService);
-  private readonly cartService = injectCartService();
-  private readonly errorHandler = injectErrorHandlerService();
-  private readonly toastService = injectToastService();
+  private readonly cartService = inject(CartService);
+  private readonly errorHandler = inject(ErrorHandlerService);
+  private readonly toastService = inject(ToastService);
 
   // State signals
   readonly cart = signal<any>(null);

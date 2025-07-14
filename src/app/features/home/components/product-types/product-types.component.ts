@@ -1,7 +1,7 @@
-import { Component, input } from '@angular/core';
+import { Component, input, inject } from '@angular/core';
 import { RouterLink } from '@angular/router';
 
-import { injectProductTypesService } from '@api/product-types.service';
+import { ProductTypesService } from '@api/product-types.service';
 
 import { TitleComponent } from '@ui/title/title.component';
 
@@ -149,7 +149,7 @@ export type ProductType = HttpTypes.StoreProductType;
 })
 export class ProductTypesComponent {
   productTypes = input<ProductType[]>([]);
-  private productTypesService = injectProductTypesService();
+  private productTypesService = inject(ProductTypesService);
 
   hasProductTypeImage(type: ProductType): boolean {
     return this.productTypesService.hasProductTypeImage(type);

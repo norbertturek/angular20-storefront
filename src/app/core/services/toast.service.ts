@@ -1,4 +1,4 @@
-import { signal, inject, InjectionToken, Signal, computed } from '@angular/core';
+import { Injectable, signal, computed, Signal } from '@angular/core';
 
 export interface Toast {
   id: string;
@@ -14,60 +14,39 @@ export interface Toast {
   };
 }
 
-export interface ToastService {
-  toasts: Signal<Toast[]>;
-  hasToasts: Signal<boolean>;
-  successToasts: Signal<Toast[]>;
-  errorToasts: Signal<Toast[]>;
-  warningToasts: Signal<Toast[]>;
-  infoToasts: Signal<Toast[]>;
-  show: (toast: Omit<Toast, 'id' | 'timestamp'>) => string;
-  success: (message: string, title?: string, options?: Partial<Toast>) => string;
-  error: (message: string, title?: string, options?: Partial<Toast>) => string;
-  warning: (message: string, title?: string, options?: Partial<Toast>) => string;
-  info: (message: string, title?: string, options?: Partial<Toast>) => string;
-  dismiss: (toastId: string) => void;
-  dismissAll: () => void;
-  dismissByType: (type: Toast['type']) => void;
-  getToastStats: () => any;
-}
+@Injectable({ providedIn: 'root' })
+export class ToastService {
+  private toastsSignal = signal<Toast[]>([]);
 
-export function createToastService(): ToastService {
-  const toastsSignal = signal<Toast[]>([]);
+  public toasts: Signal<Toast[]> = this.toastsSignal.asReadonly();
+  public hasToasts = computed(() => this.toasts() && this.toasts().length > 0);
+  public successToasts = computed(() => this.toasts().filter(toast => toast.type === 'success'));
+  public errorToasts = computed(() => this.toasts().filter(toast => toast.type === 'error'));
+  public warningToasts = computed(() => this.toasts().filter(toast => toast.type === 'warning'));
+  public infoToasts = computed(() => this.toasts().filter(toast => toast.type === 'info'));
 
-  // Computed signals
-  const toasts = toastsSignal.asReadonly();
-  const hasToasts = computed(() => toasts().length > 0);
-  const successToasts = computed(() => toasts().filter(toast => toast.type === 'success'));
-  const errorToasts = computed(() => toasts().filter(toast => toast.type === 'error'));
-  const warningToasts = computed(() => toasts().filter(toast => toast.type === 'warning'));
-  const infoToasts = computed(() => toasts().filter(toast => toast.type === 'info'));
-
-  const generateToastId = (): string => {
+  private generateToastId(): string {
     return `toast_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-  };
+  }
 
-  const show = (toast: Omit<Toast, 'id' | 'timestamp'>): string => {
-    const id = generateToastId();
+  show(toast: Omit<Toast, 'id' | 'timestamp'>): string {
+    const id = this.generateToastId();
     const fullToast: Toast = {
       ...toast,
       id,
       timestamp: new Date()
     };
-    
-    toastsSignal.update(toasts => [...toasts, fullToast]);
-    
+    this.toastsSignal.update(toasts => [...toasts, fullToast]);
     if (fullToast.duration && fullToast.duration > 0) {
       setTimeout(() => {
-        dismiss(id);
+        this.dismiss(id);
       }, fullToast.duration);
     }
-
     return id;
-  };
+  }
 
-  const success = (message: string, title?: string, options?: Partial<Toast>): string => {
-    return show({
+  success(message: string, title?: string, options?: Partial<Toast>): string {
+    return this.show({
       message,
       type: 'success',
       title,
@@ -75,10 +54,10 @@ export function createToastService(): ToastService {
       dismissible: true,
       ...options
     });
-  };
+  }
 
-  const error = (message: string, title?: string, options?: Partial<Toast>): string => {
-    return show({
+  error(message: string, title?: string, options?: Partial<Toast>): string {
+    return this.show({
       message,
       type: 'error',
       title,
@@ -86,10 +65,10 @@ export function createToastService(): ToastService {
       dismissible: true,
       ...options
     });
-  };
+  }
 
-  const warning = (message: string, title?: string, options?: Partial<Toast>): string => {
-    return show({
+  warning(message: string, title?: string, options?: Partial<Toast>): string {
+    return this.show({
       message,
       type: 'warning',
       title,
@@ -97,10 +76,10 @@ export function createToastService(): ToastService {
       dismissible: true,
       ...options
     });
-  };
+  }
 
-  const info = (message: string, title?: string, options?: Partial<Toast>): string => {
-    return show({
+  info(message: string, title?: string, options?: Partial<Toast>): string {
+    return this.show({
       message,
       type: 'info',
       title,
@@ -108,22 +87,22 @@ export function createToastService(): ToastService {
       dismissible: true,
       ...options
     });
-  };
+  }
 
-  const dismiss = (toastId: string): void => {
-    toastsSignal.update(toasts => toasts.filter(toast => toast.id !== toastId));
-  };
+  dismiss(toastId: string): void {
+    this.toastsSignal.update(toasts => toasts.filter(toast => toast.id !== toastId));
+  }
 
-  const dismissAll = (): void => {
-    toastsSignal.set([]);
-  };
+  dismissAll(): void {
+    this.toastsSignal.set([]);
+  }
 
-  const dismissByType = (type: Toast['type']): void => {
-    toastsSignal.update(toasts => toasts.filter(toast => toast.type !== type));
-  };
+  dismissByType(type: Toast['type']): void {
+    this.toastsSignal.update(toasts => toasts.filter(toast => toast.type !== type));
+  }
 
-  const getToastStats = () => {
-    const currentToasts = toasts();
+  getToastStats() {
+    const currentToasts = this.toasts();
     return {
       total: currentToasts.length,
       byType: {
@@ -133,30 +112,5 @@ export function createToastService(): ToastService {
         info: currentToasts.filter(t => t.type === 'info').length
       }
     };
-  };
-
-  return {
-    toasts,
-    hasToasts,
-    successToasts,
-    errorToasts,
-    warningToasts,
-    infoToasts,
-    show,
-    success,
-    error,
-    warning,
-    info,
-    dismiss,
-    dismissAll,
-    dismissByType,
-    getToastStats
-  };
-}
-
-export function injectToastService(): ToastService {
-  return inject(TOAST_SERVICE);
-}
-
-// Simple token for DI
-export const TOAST_SERVICE = new InjectionToken<ToastService>('ToastService'); 
+  }
+} 

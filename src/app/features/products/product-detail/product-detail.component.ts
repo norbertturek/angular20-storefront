@@ -6,9 +6,9 @@ import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 
 import { HttpTypes } from '@medusajs/types';
 
-import { injectRegionsService } from '@api/regions.service';
-import { injectCartService } from '@services/cart.service';
-import { injectToastService } from '@services/toast.service';
+import { CartService } from '@services/cart.service';
+import { RegionsService } from '@api/regions.service';
+import { ToastService } from '@services/toast.service';
 
 import { ProductsService } from '../products.service';
 
@@ -40,9 +40,9 @@ export class ProductDetailComponent {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly productsService = inject(ProductsService);
-  private readonly cartService = injectCartService();
-  private readonly regionsService = injectRegionsService();
-  private readonly toastService = injectToastService();
+  private readonly cartService = inject(CartService);
+  private readonly regionsService = inject(RegionsService);
+  private readonly toastService = inject(ToastService);
 
   // State signals
   readonly product = signal<HttpTypes.StoreProduct | null>(null);

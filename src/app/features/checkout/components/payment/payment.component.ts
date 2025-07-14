@@ -1,10 +1,10 @@
-import { injectCartService } from '@/app/core/services/cart.service';
 import { CommonModule } from '@angular/common';
 import { AfterViewInit, ChangeDetectionStrategy, Component, DestroyRef, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 
-import { injectStripeService } from '@api/stripe.service';
+import { CartService } from '@/app/core/services/cart.service';
+import { StripeService } from '@api/stripe.service';
 
 import { HttpTypes } from '@medusajs/types';
 
@@ -125,8 +125,8 @@ import { HttpTypes } from '@medusajs/types';
   styleUrls: ['./payment.component.scss']
 })
 export class PaymentComponent implements AfterViewInit {
-  private cartService = injectCartService();
-  private stripeService = injectStripeService();
+  private cartService = inject(CartService);
+  private stripeService = inject(StripeService);
   private router = inject(Router);
   private destroyRef = inject(DestroyRef);
 

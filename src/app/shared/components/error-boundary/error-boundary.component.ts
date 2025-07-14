@@ -1,6 +1,7 @@
 import { CommonModule } from '@angular/common';
 import { Component, signal, computed, effect, ChangeDetectionStrategy } from '@angular/core';
-import { injectErrorHandlerService, AppError } from '@services/error-handler.service';
+import { ErrorHandlerService, AppError } from '@services/error-handler.service';
+import { inject } from '@angular/core';
 
 @Component({
   selector: 'app-error-boundary',
@@ -229,7 +230,7 @@ import { injectErrorHandlerService, AppError } from '@services/error-handler.ser
   `]
 })
 export class ErrorBoundaryComponent {
-  errorHandlerService = injectErrorHandlerService();
+  errorHandlerService = inject(ErrorHandlerService);
   
   // Signal to track if retry button should be shown
   private showRetryState = signal(false);

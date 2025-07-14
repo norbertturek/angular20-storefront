@@ -2,8 +2,9 @@ import { CommonModule } from '@angular/common';
 import { ChangeDetectionStrategy, Component, input, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 
-import { injectCartService } from '@services/cart.service';
-import { injectToastService } from '@services/toast.service';
+import { inject } from '@angular/core';
+import { CartService } from '@services/cart.service';
+import { ToastService } from '@services/toast.service';
 
 import { ButtonComponent } from '@ui/button/button.component';
 
@@ -107,8 +108,8 @@ import { ButtonComponent } from '@ui/button/button.component';
 export class DiscountCodeComponent {
   cart = input<any>();
 
-  private cartService = injectCartService();
-  private toastService = injectToastService();
+  private cartService = inject(CartService);
+  private toastService = inject(ToastService);
 
   discountCode = '';
   isApplying = signal(false);

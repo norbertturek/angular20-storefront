@@ -3,7 +3,7 @@ import { ChangeDetectionStrategy, Component, computed, effect, inject, PLATFORM_
 import { NavigationEnd, Router, RouterModule } from '@angular/router';
 
 import { CartDrawerService } from '@/app/features/cart/cart-drawer.service';
-import { injectCartService } from '@services/cart.service';
+import { CartService } from '@services/cart.service';
 
 import { SearchComponent } from '@sharedComponents/search/search.component';
 
@@ -16,7 +16,7 @@ import { SearchComponent } from '@sharedComponents/search/search.component';
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class HeaderComponent {
-  private cartService = injectCartService();
+  private cartService = inject(CartService);
   cartDrawerService = inject(CartDrawerService);
   private platformId = inject(PLATFORM_ID);
 

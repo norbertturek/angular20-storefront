@@ -1,39 +1,29 @@
-import { inject, signal, computed, InjectionToken } from '@angular/core';
+import { Injectable, signal, computed, inject } from '@angular/core';
 import { HttpTypes } from '@medusajs/types';
-import { injectMedusaService } from './medusa.service';
+import { MedusaService } from './medusa.service';
 
-export interface RegionsService {
-  regions: ReturnType<typeof computed<HttpTypes.StoreRegion[]>>;
-  regionMap: ReturnType<typeof computed<Map<string, HttpTypes.StoreRegion>>>;
-  currentRegion: ReturnType<typeof computed<HttpTypes.StoreRegion | null>>;
-  isLoading: ReturnType<typeof computed<boolean>>;
-  error: ReturnType<typeof computed<string | null>>;
-  listRegions: () => Promise<HttpTypes.StoreRegion[]>;
-  loadRegion: (id: string) => Promise<HttpTypes.StoreRegion | null>;
-  loadRegionByCountry: (countryCode?: string) => Promise<HttpTypes.StoreRegion | null>;
-  loadCountryOptions: () => Promise<{ country: string; region: string; label: string }[]>;
-}
+@Injectable({ providedIn: 'root' })
+export class RegionsService {
+  private medusaService = inject(MedusaService);
 
-export function createRegionsService(): RegionsService {
-  const medusaService = injectMedusaService();
+  private regionsState = signal<HttpTypes.StoreRegion[]>([]);
+  private regionMapState = signal<Map<string, HttpTypes.StoreRegion>>(new Map());
+  private currentRegionState = signal<HttpTypes.StoreRegion | null>(null);
+  private isLoadingState = signal(false);
+  private errorState = signal<string | null>(null);
 
-  // Signal-based state
-  const regionsState = signal<HttpTypes.StoreRegion[]>([]);
-  const regionMapState = signal<Map<string, HttpTypes.StoreRegion>>(new Map());
-  const currentRegionState = signal<HttpTypes.StoreRegion | null>(null);
-  const isLoadingState = signal(false);
-  const errorState = signal<string | null>(null);
+  public regions = computed(() => this.regionsState());
+  public regionMap = computed(() => this.regionMapState());
+  public currentRegion = computed(() => this.currentRegionState());
+  public isLoading = computed(() => this.isLoadingState());
+  public error = computed(() => this.errorState());
 
-  // Public signals
-  const regions = computed(() => regionsState());
-  const regionMap = computed(() => regionMapState());
-  const currentRegion = computed(() => currentRegionState());
-  const isLoading = computed(() => isLoadingState());
-  const error = computed(() => errorState());
+  constructor() {
+    this.loadRegions();
+  }
 
-  function buildRegionMap(regionsData: HttpTypes.StoreRegion[]) {
+  private buildRegionMap(regionsData: HttpTypes.StoreRegion[]) {
     const regionMap = new Map<string, HttpTypes.StoreRegion>();
-    
     regionsData.forEach((region) => {
       region.countries?.forEach((country) => {
         if (country.iso_2) {
@@ -41,94 +31,82 @@ export function createRegionsService(): RegionsService {
         }
       });
     });
-
-    regionMapState.set(regionMap);
+    this.regionMapState.set(regionMap);
   }
 
-  async function loadRegions() {
+  async loadRegions() {
     try {
-      isLoadingState.set(true);
-      errorState.set(null);
-
-      const regionsData = await listRegions();
-      regionsState.set(regionsData);
-      buildRegionMap(regionsData);
+      this.isLoadingState.set(true);
+      this.errorState.set(null);
+      const regionsData = await this.listRegions();
+      this.regionsState.set(regionsData);
+      this.buildRegionMap(regionsData);
     } catch (error) {
-      errorState.set('Failed to load regions');
+      this.errorState.set('Failed to load regions');
     } finally {
-      isLoadingState.set(false);
+      this.isLoadingState.set(false);
     }
   }
 
-  async function listRegions(): Promise<HttpTypes.StoreRegion[]> {
+  async listRegions(): Promise<HttpTypes.StoreRegion[]> {
     try {
-      const response = await medusaService.fetch<{ regions: HttpTypes.StoreRegion[] }>('/store/regions');
+      const response = await this.medusaService.fetch<{ regions: HttpTypes.StoreRegion[] }>('/store/regions');
       return response.regions;
     } catch (error) {
       return [];
     }
   }
 
-  async function loadRegion(id: string): Promise<HttpTypes.StoreRegion | null> {
+  async loadRegion(id: string): Promise<HttpTypes.StoreRegion | null> {
     try {
-      isLoadingState.set(true);
-      errorState.set(null);
-
-      const response = await medusaService.fetch<{ region: HttpTypes.StoreRegion }>(`/store/regions/${id}`);
-      
-      currentRegionState.set(response.region);
+      this.isLoadingState.set(true);
+      this.errorState.set(null);
+      const response = await this.medusaService.fetch<{ region: HttpTypes.StoreRegion }>(`/store/regions/${id}`);
+      this.currentRegionState.set(response.region);
       return response.region;
     } catch (error) {
-      errorState.set('Failed to load region');
-      currentRegionState.set(null);
+      this.errorState.set('Failed to load region');
+      this.currentRegionState.set(null);
       return null;
     } finally {
-      isLoadingState.set(false);
+      this.isLoadingState.set(false);
     }
   }
 
-  async function loadRegionByCountry(countryCode?: string): Promise<HttpTypes.StoreRegion | null> {
+  async loadRegionByCountry(countryCode?: string): Promise<HttpTypes.StoreRegion | null> {
     try {
-      isLoadingState.set(true);
-      errorState.set(null);
-
-      const currentRegionMap = regionMapState();
-      
+      this.isLoadingState.set(true);
+      this.errorState.set(null);
+      const currentRegionMap = this.regionMapState();
       if (currentRegionMap.size === 0) {
-        // If map is empty, load regions first
-        await loadRegions();
-        const updatedMap = regionMapState();
+        await this.loadRegions();
+        const updatedMap = this.regionMapState();
         const regionsData = Array.from(updatedMap.values());
         const firstRegion = regionsData.length > 0 ? regionsData[0] : null;
         const region = countryCode ? updatedMap.get(countryCode) || firstRegion : firstRegion;
-        
-        currentRegionState.set(region);
+        this.currentRegionState.set(region);
         return region;
       }
-
       const regionsData = Array.from(currentRegionMap.values());
       const firstRegion = regionsData.length > 0 ? regionsData[0] : null;
       const region = countryCode ? currentRegionMap.get(countryCode) || firstRegion : firstRegion;
-      
-      currentRegionState.set(region);
+      this.currentRegionState.set(region);
       return region;
     } catch (error) {
-      errorState.set('Failed to load region');
-      currentRegionState.set(null);
+      this.errorState.set('Failed to load region');
+      this.currentRegionState.set(null);
       return null;
     } finally {
-      isLoadingState.set(false);
+      this.isLoadingState.set(false);
     }
   }
 
-  async function loadCountryOptions(): Promise<{ country: string; region: string; label: string }[]> {
+  async loadCountryOptions(): Promise<{ country: string; region: string; label: string }[]> {
     try {
-      isLoadingState.set(true);
-      errorState.set(null);
-
-      const regionsData = regionsState();
+      this.isLoadingState.set(true);
+      this.errorState.set(null);
+      const regionsData = this.regionsState();
       const options: { country: string; region: string; label: string }[] = [];
-      
       regionsData.forEach(region => {
         region.countries?.forEach(country => {
           if (country.iso_2 && country.display_name) {
@@ -140,34 +118,12 @@ export function createRegionsService(): RegionsService {
           }
         });
       });
-
       return options.sort((a, b) => a.label.localeCompare(b.label));
     } catch (error) {
-      errorState.set('Failed to load country options');
+      this.errorState.set('Failed to load country options');
       return [];
     } finally {
-      isLoadingState.set(false);
+      this.isLoadingState.set(false);
     }
   }
-
-  // Initialize regions on service creation
-  loadRegions();
-
-  return {
-    regions,
-    regionMap,
-    currentRegion,
-    isLoading,
-    error,
-    listRegions,
-    loadRegion,
-    loadRegionByCountry,
-    loadCountryOptions
-  };
-}
-
-export function injectRegionsService(): RegionsService {
-  return inject(REGIONS_SERVICE);
-}
-
-export const REGIONS_SERVICE = new InjectionToken<RegionsService>('RegionsService'); 
+} 

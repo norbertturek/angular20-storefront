@@ -5,8 +5,8 @@ import { Router, RouterModule } from '@angular/router';
 
 import { HttpTypes } from '@medusajs/types';
 
-import { injectCartService } from '@services/cart.service';
-import { injectToastService } from '@services/toast.service';
+import { CartService } from '@services/cart.service';
+import { ToastService } from '@services/toast.service';
 
 import { DiscountCodeComponent } from '@sharedComponents/discount-code/discount-code.component';
 
@@ -19,8 +19,8 @@ import { DiscountCodeComponent } from '@sharedComponents/discount-code/discount-
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class CheckoutComponent {
-  private cartService = injectCartService();
-  private toastService = injectToastService();
+  private cartService = inject(CartService);
+  private toastService = inject(ToastService);
   router = inject(Router);
 
   cart = signal<HttpTypes.StoreCart | null>(null);

@@ -4,12 +4,13 @@ import {
   Component,
   computed,
   effect,
-  signal
+  signal,
+  inject
 } from '@angular/core';
 import { RouterModule } from '@angular/router';
 
-import { injectProductTypesService } from '@api/product-types.service';
-import { injectCollectionsService } from '@services/collections.service';
+import { ProductTypesService } from '@api/product-types.service';
+import { CollectionsService } from '@services/collections.service';
 
 import { HttpTypes } from '@medusajs/types';
 
@@ -38,8 +39,8 @@ import { ButtonComponent } from '@ui/button/button.component';
 })
 export class HomeComponent {
   // Services
-  private readonly productTypesService = injectProductTypesService();
-  private readonly collectionsService = injectCollectionsService();
+  private readonly productTypesService = inject(ProductTypesService);
+  private readonly collectionsService = inject(CollectionsService);
 
   // State signals
   readonly productTypes = signal<HttpTypes.StoreProductType[]>([]);

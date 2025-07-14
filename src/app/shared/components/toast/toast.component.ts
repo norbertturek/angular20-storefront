@@ -1,6 +1,6 @@
 import { CommonModule } from '@angular/common';
 import { Component, computed, inject, ChangeDetectionStrategy } from '@angular/core';
-import { injectToastService } from '@services/toast.service';
+import { ToastService } from '@services/toast.service';
 
 @Component({
   selector: 'app-toast',
@@ -256,7 +256,7 @@ import { injectToastService } from '@services/toast.service';
   `]
 })
 export class ToastComponent {
-  private toastService = injectToastService();
+  private toastService = inject(ToastService);
 
   // Computed signal for visible toasts (limit to 5 to prevent overflow)
   visibleToasts = computed(() => {

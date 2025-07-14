@@ -4,9 +4,9 @@ import { toSignal } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, RouterModule } from '@angular/router';
 
-import { injectProductTypesService } from '@api/product-types.service';
-import { injectRegionsService } from '@api/regions.service';
-import { injectCollectionsService } from '@services/collections.service';
+import { ProductTypesService } from '@api/product-types.service';
+import { RegionsService } from '@api/regions.service';
+import { CollectionsService } from '@services/collections.service';
 import { ProductsService } from '../products/products.service';
 
 import { HttpTypes } from '@medusajs/types';
@@ -27,9 +27,9 @@ export class ProductListComponent {
   // Services
   private readonly route = inject(ActivatedRoute);
   private readonly productsService = inject(ProductsService);
-  private readonly productTypesService = injectProductTypesService();
-  private readonly collectionsService = injectCollectionsService();
-  private readonly regionsService = injectRegionsService();
+  private readonly productTypesService = inject(ProductTypesService);
+  private readonly collectionsService = inject(CollectionsService);
+  private readonly regionsService = inject(RegionsService);
 
   // State signals
   readonly currentFilters = signal<FilterState>({ productType: '', collection: '', search: '' });

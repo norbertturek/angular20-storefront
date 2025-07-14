@@ -1,5 +1,5 @@
+import { Injectable, computed, signal, Signal } from '@angular/core';
 import { HttpErrorResponse } from '@angular/common/http';
-import { computed, signal, Signal, inject, InjectionToken } from '@angular/core';
 
 export interface AppError {
   id: string;
@@ -20,62 +20,30 @@ export interface ErrorContext {
   sessionId?: string;
 }
 
-export interface ErrorHandlerService {
-  errors: Signal<AppError[]>;
-  hasErrors: Signal<boolean>;
-  isGlobalError: Signal<boolean>;
-  globalErrorMessage: Signal<string | null>;
-  criticalErrors: Signal<AppError[]>;
-  warnings: Signal<AppError[]>;
-  infoMessages: Signal<AppError[]>;
-  handleError: (error: Error | HttpErrorResponse | string, context?: ErrorContext) => void;
-  handleHttpError: (error: HttpErrorResponse, context?: ErrorContext) => void;
-  handleGlobalError: (error: Error | string) => void;
-  addError: (error: AppError) => void;
-  removeError: (errorId: string) => void;
-  clearErrors: () => void;
-  clearGlobalError: () => void;
-  retryLastAction: () => void;
-  getErrorStats: () => any;
-}
+@Injectable({ providedIn: 'root' })
+export class ErrorHandlerService {
+  private errorsState = signal<AppError[]>([]);
+  private isGlobalErrorState = signal<boolean>(false);
+  private globalErrorMessageState = signal<string | null>(null);
 
-export function createErrorHandlerService(): ErrorHandlerService {
-  // Signal-based error state
-  const errorsState = signal<AppError[]>([]);
-  const isGlobalErrorState = signal<boolean>(false);
-  const globalErrorMessageState = signal<string | null>(null);
+  public errors = computed(() => this.errorsState());
+  public hasErrors = computed(() => this.errors().length > 0);
+  public isGlobalError = computed(() => this.isGlobalErrorState());
+  public globalErrorMessage = computed(() => this.globalErrorMessageState());
+  public criticalErrors = computed(() => this.errors().filter(error => error.type === 'error'));
+  public warnings = computed(() => this.errors().filter(error => error.type === 'warning'));
+  public infoMessages = computed(() => this.errors().filter(error => error.type === 'info'));
 
-  // Public signals
-  const errors = computed(() => errorsState());
-  const hasErrors = computed(() => errors().length > 0);
-  const isGlobalError = computed(() => isGlobalErrorState());
-  const globalErrorMessage = computed(() => globalErrorMessageState());
-
-  // Computed signals for different error types
-  const criticalErrors = computed(() => 
-    errors().filter(error => error.type === 'error')
-  );
-  
-  const warnings = computed(() => 
-    errors().filter(error => error.type === 'warning')
-  );
-  
-  const infoMessages = computed(() => 
-    errors().filter(error => error.type === 'info')
-  );
-
-  // Utility functions
-  const createAppError = (
+  private createAppError(
     error: Error | HttpErrorResponse | string,
     context?: ErrorContext,
     type: 'error' | 'warning' | 'info' = 'error',
     details?: any
-  ): AppError => {
+  ): AppError {
     const message = typeof error === 'string' ? error : error.message;
-    
     return {
-      id: generateErrorId(),
-      message: sanitizeErrorMessage(message),
+      id: this.generateErrorId(),
+      message: this.sanitizeErrorMessage(message),
       type,
       timestamp: new Date(),
       context: context?.component || 'Unknown',
@@ -84,13 +52,12 @@ export function createErrorHandlerService(): ErrorHandlerService {
       autoDismiss: type === 'info',
       dismissTimeout: type === 'info' ? 5000 : undefined
     };
-  };
+  }
 
-  const getHttpErrorMessage = (error: HttpErrorResponse): string => {
+  private getHttpErrorMessage(error: HttpErrorResponse): string {
     if (error.error?.message) {
       return error.error.message;
     }
-    
     switch (error.status) {
       case 400:
         return 'Invalid request. Please check your input.';
@@ -115,22 +82,20 @@ export function createErrorHandlerService(): ErrorHandlerService {
       default:
         return 'An unexpected error occurred. Please try again.';
     }
-  };
+  }
 
-  const sanitizeErrorMessage = (message: string): string => {
-    // Remove sensitive information and sanitize error messages
+  private sanitizeErrorMessage(message: string): string {
     return message
       .replace(/password|token|key|secret/gi, '[REDACTED]')
       .replace(/http:\/\/.*?\/|https:\/\/.*?\/|localhost:\d+/g, '[URL]')
       .trim();
-  };
+  }
 
-  const generateErrorId = (): string => {
+  private generateErrorId(): string {
     return `error_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-  };
+  }
 
-  const logError = (error: AppError): void => {
-    // In production, this would send to error monitoring service
+  private logError(error: AppError): void {
     console.error('Application Error:', {
       id: error.id,
       message: error.message,
@@ -139,10 +104,9 @@ export function createErrorHandlerService(): ErrorHandlerService {
       timestamp: error.timestamp,
       details: error.details
     });
-  };
+  }
 
-  const logHttpError = (error: HttpErrorResponse, context?: ErrorContext): void => {
-    // In production, this would send to error monitoring service
+  private logHttpError(error: HttpErrorResponse, context?: ErrorContext): void {
     console.error('HTTP Error:', {
       status: error.status,
       statusText: error.statusText,
@@ -150,72 +114,57 @@ export function createErrorHandlerService(): ErrorHandlerService {
       context,
       timestamp: new Date()
     });
-  };
+  }
 
-  // Error handling methods
-  const handleError = (error: Error | HttpErrorResponse | string, context?: ErrorContext): void => {
-    const appError = createAppError(error, context);
-    addError(appError);
-    
-    // Log error for debugging
-    logError(appError);
-  };
+  handleError(error: Error | HttpErrorResponse | string, context?: ErrorContext): void {
+    const appError = this.createAppError(error, context);
+    this.addError(appError);
+    this.logError(appError);
+  }
 
-  const handleHttpError = (error: HttpErrorResponse, context?: ErrorContext): void => {
-    const message = getHttpErrorMessage(error);
-    const appError = createAppError(message, context, 'error', { httpError: error });
-    addError(appError);
-    
-    // Log HTTP error
-    logHttpError(error, context);
-  };
+  handleHttpError(error: HttpErrorResponse, context?: ErrorContext): void {
+    const message = this.getHttpErrorMessage(error);
+    const appError = this.createAppError(message, context, 'error', { httpError: error });
+    this.addError(appError);
+    this.logHttpError(error, context);
+  }
 
-  const handleGlobalError = (error: Error | string): void => {
-    isGlobalErrorState.set(true);
-    globalErrorMessageState.set(typeof error === 'string' ? error : error.message);
-    
-    // Auto-dismiss global error after 10 seconds
+  handleGlobalError(error: Error | string): void {
+    this.isGlobalErrorState.set(true);
+    this.globalErrorMessageState.set(typeof error === 'string' ? error : error.message);
     setTimeout(() => {
-      clearGlobalError();
+      this.clearGlobalError();
     }, 10000);
-  };
+  }
 
-  // Error management methods
-  const addError = (error: AppError): void => {
-    errorsState.update(errors => [...errors, error]);
-    
-    // Auto-dismiss if configured
+  addError(error: AppError): void {
+    this.errorsState.update(errors => [...errors, error]);
     if (error.autoDismiss && error.dismissTimeout) {
       setTimeout(() => {
-        removeError(error.id);
+        this.removeError(error.id);
       }, error.dismissTimeout);
     }
-  };
+  }
 
-  const removeError = (errorId: string): void => {
-    errorsState.update(errors => 
-      errors.filter(error => error.id !== errorId)
-    );
-  };
+  removeError(errorId: string): void {
+    this.errorsState.update(errors => errors.filter(error => error.id !== errorId));
+  }
 
-  const clearErrors = (): void => {
-    errorsState.set([]);
-  };
+  clearErrors(): void {
+    this.errorsState.set([]);
+  }
 
-  const clearGlobalError = (): void => {
-    isGlobalErrorState.set(false);
-    globalErrorMessageState.set(null);
-  };
+  clearGlobalError(): void {
+    this.isGlobalErrorState.set(false);
+    this.globalErrorMessageState.set(null);
+  }
 
-  // Error recovery methods
-  const retryLastAction = (): void => {
-    // This would be implemented based on the last failed action
+  retryLastAction(): void {
     console.log('Retrying last action...');
-  };
+  }
 
-  // Error analytics
-  const getErrorStats = () => {
-    const currentErrors = errors();
+  getErrorStats() {
+    const currentErrors = this.errors();
     return {
       total: currentErrors.length,
       byType: {
@@ -228,31 +177,5 @@ export function createErrorHandlerService(): ErrorHandlerService {
         return acc;
       }, {} as Record<string, number>)
     };
-  };
-
-  return {
-    errors,
-    hasErrors,
-    isGlobalError,
-    globalErrorMessage,
-    criticalErrors,
-    warnings,
-    infoMessages,
-    handleError,
-    handleHttpError,
-    handleGlobalError,
-    addError,
-    removeError,
-    clearErrors,
-    clearGlobalError,
-    retryLastAction,
-    getErrorStats
-  };
-}
-
-export function injectErrorHandlerService(): ErrorHandlerService {
-  return inject(ERROR_HANDLER_SERVICE);
-}
-
-// Simple token for DI
-export const ERROR_HANDLER_SERVICE = new InjectionToken<ErrorHandlerService>('ErrorHandlerService'); 
+  }
+} 
