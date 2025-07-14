@@ -34,10 +34,10 @@ import { ButtonComponent } from '@ui/button/button.component';
       [class.open]="cartDrawerService.isOpen()">
       
       <!-- Header -->
-      <div class="drawer-header">
-        <h2 class="drawer-title">Cart</h2>
+      <div class="drawer-header flex justify-between items-center p-4 border-b border-gray-200">
+        <h2 class="drawer-title text-lg font-semibold text-primary m-0">Cart</h2>
         <button 
-          class="close-button"
+          class="close-button bg-transparent border-none cursor-pointer p-2 text-secondary rounded transition-colors hover:text-primary"
           (click)="cartDrawerService.close()"
           aria-label="Close cart">
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -253,32 +253,15 @@ import { ButtonComponent } from '@ui/button/button.component';
     }
 
     .drawer-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 1.5rem;
-      border-bottom: 1px solid #e5e7eb;
+      /* Styles handled by utility classes */
     }
 
     .drawer-title {
-      font-size: 1.125rem;
-      font-weight: 600;
-      color: #1f2937;
-      margin: 0;
+      /* Styles handled by utility classes */
     }
 
     .close-button {
-      background: none;
-      border: none;
-      cursor: pointer;
-      padding: 0.5rem;
-      color: #6b7280;
-      border-radius: 4px;
-      transition: color 0.2s;
-    }
-
-    .close-button:hover {
-      color: #1f2937;
+      /* Styles handled by utility classes */
     }
 
     .drawer-content {
@@ -515,10 +498,6 @@ import { ButtonComponent } from '@ui/button/button.component';
     @media (max-width: 640px) {
       .cart-drawer {
         max-width: 100%;
-      }
-      
-      .drawer-header {
-        padding: 1rem;
       }
       
       .cart-items {

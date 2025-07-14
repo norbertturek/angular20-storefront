@@ -99,6 +99,26 @@
   }
 }
 
+.button--light {
+  background-color: $color-white;
+  color: $color-black;
+  border: 1px solid $color-white;
+
+  &:hover:not(:disabled) {
+    background-color: $color-gray-50;
+    border-color: $color-gray-50;
+  }
+
+  &:active:not(:disabled) {
+    background-color: $color-gray-100;
+    border-color: $color-gray-100;
+  }
+
+  &:focus-visible {
+    outline-color: $color-white;
+  }
+}
+
 .button--link {
   background-color: $color-transparent;
   color: $color-primary-600;

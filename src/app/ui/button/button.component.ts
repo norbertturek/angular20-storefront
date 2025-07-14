@@ -2,7 +2,7 @@ import { Component, input, output, computed, ChangeDetectionStrategy } from '@an
 import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
 
-export type ButtonVariant = 'primary' | 'secondary' | 'link';
+export type ButtonVariant = 'primary' | 'secondary' | 'light' | 'link';
 export type ButtonSize = 'small' | 'medium' | 'large' | 'compact';
 
 @Component({

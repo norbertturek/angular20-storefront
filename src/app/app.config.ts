@@ -6,15 +6,16 @@ import { provideRouter, withInMemoryScrolling, withRouterConfig } from '@angular
 import { routes } from './app.routes';
 
 // Import all services
-import { CartDrawerService } from './features/cart/cart-drawer.service';
-import { createCartService, CART_SERVICE } from './core/services/cart.service';
-import { createErrorHandlerService, ERROR_HANDLER_SERVICE } from '@services/error-handler.service';
+import { AuthService } from '@/app/core/api/auth.service';
 import { createMedusaService, MEDUSA_SERVICE } from '@api/medusa.service';
-import { ProductsService } from './features/products/products.service';
 import { createRegionsService, REGIONS_SERVICE } from '@api/regions.service';
-import { SearchService } from './features/search/search.service';
 import { createStripeService, STRIPE_SERVICE } from '@api/stripe.service';
+import { createErrorHandlerService, ERROR_HANDLER_SERVICE } from '@services/error-handler.service';
 import { createToastService, TOAST_SERVICE } from '@services/toast.service';
+import { CART_SERVICE, createCartService } from './core/services/cart.service';
+import { CartDrawerService } from './features/cart/cart-drawer.service';
+import { ProductsService } from './features/products/products.service';
+import { SearchService } from './features/search/search.service';
 
 export const appConfig: ApplicationConfig = {
   providers: [
@@ -41,6 +42,7 @@ export const appConfig: ApplicationConfig = {
     { provide: MEDUSA_SERVICE, useFactory: createMedusaService },
     CartDrawerService,
     { provide: ERROR_HANDLER_SERVICE, useFactory: createErrorHandlerService },
+    AuthService,
     
     // Functional service providers
     { provide: TOAST_SERVICE, useFactory: createToastService }

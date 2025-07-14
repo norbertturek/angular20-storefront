@@ -1,5 +1,5 @@
-import { CommonModule } from '@angular/common';
-import { ChangeDetectionStrategy, Component, computed, effect, inject, signal, Signal } from '@angular/core';
+import { CommonModule, isPlatformBrowser } from '@angular/common';
+import { ChangeDetectionStrategy, Component, computed, effect, inject, PLATFORM_ID, signal, Signal } from '@angular/core';
 import { NavigationEnd, Router, RouterModule } from '@angular/router';
 
 import { CartDrawerService } from '@/app/features/cart/cart-drawer.service';
@@ -18,6 +18,7 @@ import { SearchComponent } from '@sharedComponents/search/search.component';
 export class HeaderComponent {
   private cartService = injectCartService();
   cartDrawerService = inject(CartDrawerService);
+  private platformId = inject(PLATFORM_ID);
 
   cartQuantity = signal(0);
 
@@ -49,9 +50,9 @@ export class HeaderComponent {
       }
     });
 
-    // Only listen to scroll if on home
+    // Only listen to scroll if on home and in browser
     effect(() => {
-      if (!this.isHome()) {
+      if (!this.isHome() || !isPlatformBrowser(this.platformId)) {
         this.isTransparent.set(false);
         return;
       }
@@ -73,5 +74,9 @@ export class HeaderComponent {
       // Cleanup
       return () => window.removeEventListener('scroll', onScroll);
     });
+  }
+
+  navigateToRegister() {
+    this.router.navigate(['/register']);
   }
 } 

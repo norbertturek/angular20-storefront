@@ -1,0 +1,97 @@
+.register-container {
+  display: flex;
+  min-height: 100vh;
+  background: #fff;
+
+  .register-image {
+    display: none;
+    @media (min-width: 1024px) {
+      display: block;
+      width: 50%;
+      object-fit: cover;
+      height: 100vh;
+    }
+  }
+
+  .register-form-wrapper {
+    flex: 1;
+    max-width: 400px;
+    margin: 0 auto;
+    padding: 4rem 2rem 2rem 2rem;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+  }
+
+  .register-title {
+    font-size: 2rem;
+    font-weight: 500;
+    margin-bottom: 2rem;
+    color: #222;
+  }
+
+  .register-form {
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+    margin-bottom: 2rem;
+  }
+
+  .register-row {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  input {
+    padding: 0.75rem 1rem;
+    border: 1px solid #e5e5e5;
+    border-radius: 6px;
+    font-size: 1rem;
+    width: 100%;
+    background: #fafafa;
+    transition: border 0.2s;
+    &:focus {
+      border: 1.5px solid #222;
+      outline: none;
+    }
+  }
+
+  .register-error {
+    color: #e53935;
+    font-size: 0.95rem;
+    margin: 2px 0 0 0;
+    line-height: 1.2;
+  }
+
+  .register-submit {
+    background: #222;
+    color: #fff;
+    border: none;
+    border-radius: 6px;
+    padding: 0.9rem 0;
+    font-size: 1.1rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.2s;
+    &:disabled {
+      background: #aaa;
+      cursor: not-allowed;
+    }
+    &:hover:not(:disabled) {
+      background: #444;
+    }
+  }
+
+  .register-login-link {
+    color: #666;
+    font-size: 1rem;
+    a {
+      color: #222;
+      text-decoration: underline;
+      &:hover {
+        color: #000;
+      }
+    }
+  }
+} 
