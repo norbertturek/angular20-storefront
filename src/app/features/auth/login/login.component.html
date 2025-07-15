@@ -1,0 +1,20 @@
+<div class="login-container">
+  <img class="login-image" src="/images/content/gray-backrest-sofa-wooden-coffee-table.png" alt="Gray backrest sofa and wooden coffee table" />
+  <div class="login-form-wrapper">
+    <h1 class="login-title">Welcome back to Sofa Society!</h1>
+    <form (ngSubmit)="onSubmit($event)" class="login-form" autocomplete="on">
+      <input type="email" placeholder="Email" [value]="email()" (input)="onEmailInput($event)" (blur)="onEmailBlur()" required autocomplete="email" />
+      <div *ngIf="emailTouched() && emailError()" class="login-error">{{ emailError() }}</div>
+      <input type="password" placeholder="Password" [value]="password()" (input)="onPasswordInput($event)" (blur)="onPasswordBlur()" required autocomplete="current-password" />
+      <div *ngIf="passwordTouched() && passwordError()" class="login-error">{{ passwordError() }}</div>
+      <div class="login-forgot-link">
+        <a routerLink="/forgot-password">Forgot password?</a>
+      </div>
+      <div *ngIf="error()" class="login-error">{{ error() }}</div>
+      <app-button type="submit" [disabled]="!isFormValid() || loading()" label="Log in" variant="primary" size="medium"></app-button>
+    </form>
+    <p class="login-register-link">
+      Don’t have an account? <a routerLink="/register">register here</a>.
+    </p>
+  </div>
+</div>

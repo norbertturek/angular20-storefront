@@ -1,0 +1,98 @@
+.personal-security {
+  .page-title {
+    font-size: 28px;
+    font-weight: 500;
+    margin: 0 0 32px 0;
+    color: #333;
+  }
+}
+
+.card {
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+  margin-bottom: 24px;
+  padding: 24px 24px 16px 24px;
+}
+
+.card-title {
+  font-size: 20px;
+  font-weight: 600;
+  margin-bottom: 18px;
+  color: #222;
+}
+
+.info-section {
+  .info-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 0;
+    border-bottom: 1px solid #f0f0f0;
+    &:last-child { border-bottom: none; }
+    .info-label { font-size: 14px; color: #666; font-weight: 500; min-width: 120px; }
+    .info-value { flex: 1; font-size: 16px; color: #333; margin: 0 16px; }
+  }
+}
+
+.edit-form {
+  margin-top: 18px;
+  .form-row {
+    display: flex;
+    gap: 16px;
+    margin-bottom: 12px;
+    .form-field { flex: 1; display: flex; flex-direction: column; }
+  }
+  .form-field {
+    margin-bottom: 12px;
+    label { font-size: 13px; color: #555; margin-bottom: 4px; }
+    input { padding: 8px 10px; border: 1px solid #ccc; border-radius: 6px; font-size: 15px; }
+  }
+  .form-actions {
+    display: flex;
+    gap: 12px;
+    justify-content: flex-end;
+    margin-top: 12px;
+  }
+}
+
+.error {
+  color: #d32f2f;
+  font-size: 13px;
+  margin-top: 2px;
+}
+
+.address-list {
+  .address-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    padding: 12px;
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    margin-bottom: 10px;
+    .address-content { flex: 1; .address-line { font-size: 14px; color: #333; line-height: 1.4; } }
+    .address-actions { margin-left: 16px; }
+  }
+}
+
+.add-address-btn { margin-top: 12px; }
+
+.info-note {
+  font-size: 14px;
+  color: #666;
+  margin: 16px 0;
+  line-height: 1.5;
+}
+
+@media (max-width: 768px) {
+  .personal-security {
+    .page-title { font-size: 22px; margin-bottom: 18px; }
+  }
+  .card { padding: 16px 8px 8px 8px; }
+  .card-title { font-size: 17px; }
+  .info-section .info-row { flex-direction: column; align-items: flex-start; gap: 6px; .info-label { min-width: auto; } .info-value { margin: 0; } }
+  .edit-form .form-row { flex-direction: column; gap: 8px; }
+  .form-actions { flex-direction: column; button { width: 100%; } }
+  .address-list .address-item { flex-direction: column; gap: 8px; .address-actions { margin-left: 0; align-self: flex-end; } }
+} 

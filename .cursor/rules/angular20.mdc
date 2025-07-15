@@ -1,0 +1,17 @@
+---
+alwaysApply: true
+---
+
+## Angular
+
+### ANGULAR_CODING_STANDARDS
+Implement according to the latest Angular 20 standards
+Use angular signals
+Stick to feature-first architecture
+Order of imports - angular, services, component and types
+Component structure - services, state signals, route signals, computed values, effects, public methods, private methods
+Try to avoid the constructor, ngOnInit etc
+Use global classes available in the project and components in the UI if you need them
+Use aliases, not relative imports
+Use a modern approach to forms with signsls in Angular
+Don't use angular material and MDC

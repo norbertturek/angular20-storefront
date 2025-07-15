@@ -37,9 +37,9 @@ describe('MedusaService', () => {
 
   it('should throw on HTTP error', async () => {
     globalThis.fetch = jasmine.createSpy('fetch').and.returnValue(Promise.resolve(
-      new Response(null, { status: 404 })
+      new Response('', { status: 404 })
     ));
-    await expectAsync(service.fetch('/fail')).toBeRejectedWithError('HTTP error! status: 404');
+    await expectAsync(service.fetch('/fail')).toBeRejectedWithError('HTTP error! status: 404, message: ');
   });
 
   it('should append query params', async () => {

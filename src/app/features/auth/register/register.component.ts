@@ -5,6 +5,7 @@ import { FormsModule } from '@angular/forms';
 
 import { AuthService } from '@api/auth.service';
 import { ButtonComponent } from '@ui/button/button.component';
+import { Router } from '@angular/router';
 
 @Component({
   selector: 'app-register',
@@ -16,6 +17,7 @@ import { ButtonComponent } from '@ui/button/button.component';
 
 export class RegisterComponent {
   private authService = inject(AuthService);
+  private router = inject(Router);
 
   // Signals for form fields
   firstName = signal('');
@@ -189,12 +191,18 @@ export class RegisterComponent {
     ) {
       return;
     }
-    await this.authService.register({
+    
+    const result = await this.authService.register({
       email: this.email(),
       first_name: this.firstName(),
       last_name: this.lastName(),
       phone: this.phone(),
       password: this.password(),
     });
+    
+    if (result.success) {
+      // Navigate to account page or home after successful registration
+      this.router.navigate(['/account']);
+    }
   }
 } 

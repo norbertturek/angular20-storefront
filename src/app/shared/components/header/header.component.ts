@@ -4,6 +4,7 @@ import { NavigationEnd, Router, RouterModule } from '@angular/router';
 
 import { CartDrawerService } from '@/app/features/cart/cart-drawer.service';
 import { CartService } from '@services/cart.service';
+import { AuthService } from '@api/auth.service';
 
 import { SearchComponent } from '@sharedComponents/search/search.component';
 
@@ -17,6 +18,7 @@ import { SearchComponent } from '@sharedComponents/search/search.component';
 })
 export class HeaderComponent {
   private cartService = inject(CartService);
+  private authService = inject(AuthService);
   cartDrawerService = inject(CartDrawerService);
   private platformId = inject(PLATFORM_ID);
 
@@ -76,7 +78,14 @@ export class HeaderComponent {
     });
   }
 
-  navigateToRegister() {
-    this.router.navigate(['/register']);
+  navigateToAccount() {
+    const customer = this.authService.customer();
+    if (customer) {
+      // User is logged in - navigate to account dashboard
+      this.router.navigate(['/account']);
+    } else {
+      // User is not logged in - navigate to login page
+      this.router.navigate(['/login']);
+    }
   }
 } 

@@ -1,0 +1,18 @@
+<div class="account-layout">
+  <aside class="sidebar">
+    <div class="sidebar-content">
+      <h1 class="sidebar-title">My Account</h1>
+      <nav class="sidebar-nav">
+        <a routerLink="/account" routerLinkActive="active" class="nav-item">Personal & Security</a>
+        <a routerLink="/account/orders" routerLinkActive="active" class="nav-item">My Orders</a>
+      </nav>
+      <div class="sidebar-divider"></div>
+      <app-button label="Log out" (clicked)="logout()" class="logout-button" variant="secondary"></app-button>
+    </div>
+  </aside>
+  <main class="main-content">
+    <div class="content-wrapper">
+      <router-outlet></router-outlet>
+    </div>
+  </main>
+</div> 

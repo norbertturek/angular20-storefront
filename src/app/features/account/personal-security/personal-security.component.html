@@ -1,0 +1,94 @@
+<div class="personal-security">
+  <h1 class="page-title">Personal & Security</h1>
+
+  <!-- Personal Information Section -->
+  <div class="card">
+    <div class="card-title">Personal Information</div>
+    <div class="info-section">
+      <div class="info-row">
+        <div class="info-label">Name</div>
+        <div class="info-value">{{ customer()?.first_name }} {{ customer()?.last_name }}</div>
+        @if (!isEditing()) {
+          <app-button label="Change" (clicked)="startEditing()" variant="secondary"></app-button>
+        }
+      </div>
+      <div class="info-row">
+        <div class="info-label">Phone</div>
+        <div class="info-value">{{ customer()?.phone || '-' }}</div>
+      </div>
+    </div>
+    @if (isEditing()) {
+      <form class="edit-form" (ngSubmit)="saveChanges()">
+        <div class="form-row">
+          <div class="form-field">
+            <label>First Name</label>
+            <input type="text" [ngModel]="firstName()" (ngModelChange)="firstName.set($event)" name="firstName" (blur)="validateFirstName()" />
+            <div class="error" *ngIf="firstNameError()">{{ firstNameError() }}</div>
+          </div>
+          <div class="form-field">
+            <label>Last Name</label>
+            <input type="text" [ngModel]="lastName()" (ngModelChange)="lastName.set($event)" name="lastName" (blur)="validateLastName()" />
+            <div class="error" *ngIf="lastNameError()">{{ lastNameError() }}</div>
+          </div>
+        </div>
+        <div class="form-field">
+          <label>Phone</label>
+          <input type="tel" [ngModel]="phone()" (ngModelChange)="phone.set($event)" name="phone" (blur)="validatePhone()" />
+          <div class="error" *ngIf="phoneError()">{{ phoneError() }}</div>
+        </div>
+        <div class="form-actions">
+          <app-button label="Cancel" variant="secondary" (clicked)="cancelEditing()"></app-button>
+          <app-button label="Save Changes" type="submit" [disabled]="!isFormValid()"></app-button>
+        </div>
+      </form>
+    }
+  </div>
+
+  <!-- Contact Section -->
+  <div class="card">
+    <div class="card-title">Contact</div>
+    <div class="info-section">
+      <div class="info-row">
+        <div class="info-label">Email</div>
+        <div class="info-value">{{ customer()?.email }}</div>
+      </div>
+    </div>
+    <div class="info-note">If you want to change your email please contact us via customer support.</div>
+  </div>
+
+  <!-- Addresses Section -->
+  <div class="card">
+    <div class="card-title">Addresses</div>
+    @if (customer()?.addresses?.length) {
+      <div class="info-section">
+        <div class="address-list">
+          @for (address of customer()?.addresses; track address.id) {
+            <div class="address-item">
+              <div class="address-content">
+                <div class="address-line">{{ address.address_1 }}</div>
+                @if (address.address_2) {
+                  <div class="address-line">{{ address.address_2 }}</div>
+                }
+                <div class="address-line">{{ address.city }}, {{ address.province }} {{ address.postal_code }}</div>
+                <div class="address-line">{{ address.country_code }}</div>
+              </div>
+              <div class="address-actions">
+                <app-button label="Edit" variant="secondary"></app-button>
+              </div>
+            </div>
+          }
+        </div>
+      </div>
+    } @else {
+      <div class="info-note">You don't have any addresses saved yet.</div>
+    }
+    <app-button label="Add Address" class="add-address-btn"></app-button>
+  </div>
+
+  <!-- Password Section -->
+  <div class="card">
+    <div class="card-title">Change Password</div>
+    <div class="info-note">To change your password, we'll send you an email. Just click on the reset button below.</div>
+    <app-button label="Request Password Reset" variant="secondary" (clicked)="requestPasswordReset()"></app-button>
+  </div>
+</div> 
