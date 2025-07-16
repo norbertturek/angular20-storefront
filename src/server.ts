@@ -17,9 +17,6 @@ const browserDistFolder = resolve(serverDistFolder, '../browser');
 const MEDUSA_BACKEND_URL = environment.medusaBackendUrl;
 const MEDUSA_PUBLISHABLE_API_KEY = environment.medusaPublishableKey;
 
-console.log('Medusa Backend URL:', MEDUSA_BACKEND_URL);
-console.log('Medusa Publishable Key:', MEDUSA_PUBLISHABLE_API_KEY ? 'Set' : 'Not set');
-
 const sdk = new Medusa({
   baseUrl: MEDUSA_BACKEND_URL,
   debug: true,
@@ -199,7 +196,6 @@ app.post('/api/customer/password-reset', express.json(), async (req, res) => {
     
     // TODO: Implement password reset using Medusa SDK
     // For now, just return success
-    console.log('Password reset requested for:', email);
     
     res.status(200).json({ 
       success: true 
@@ -207,6 +203,172 @@ app.post('/api/customer/password-reset', express.json(), async (req, res) => {
   } catch (err) {
     const errorMessage = err instanceof Error ? err.message : String(err);
     console.error('Password reset error:', errorMessage);
+    res.status(500).json({ 
+      error: 'Proxy error (SDK)', 
+      details: errorMessage 
+    });
+  }
+});
+
+// Add customer address endpoint
+app.post('/api/customer/addresses', express.json(), async (req, res) => {
+  try {
+    const { 
+      address_1, 
+      address_2, 
+      city, 
+      country_code, 
+      postal_code, 
+      province,
+      phone,
+      company,
+      first_name,
+      last_name
+    } = req.body;
+    const authHeader = req.headers.authorization;
+    
+    if (!authHeader) {
+      res.status(401).json({ 
+        success: false, 
+        error: 'No authorization token provided' 
+      });
+      return;
+    }
+    
+    // Add address using Medusa SDK
+    const { customer } = await sdk.store.customer.createAddress(
+      {
+        first_name,
+        last_name,
+        company,
+        address_1,
+        address_2,
+        city,
+        province,
+        postal_code,
+        country_code,
+        phone,
+      },
+      {},
+      { authorization: authHeader }
+    );
+    
+    res.status(200).json({ 
+      success: true,
+      customer
+    });
+  } catch (err) {
+    const errorMessage = err instanceof Error ? err.message : String(err);
+    console.error('Add address error:', errorMessage);
+    res.status(500).json({ 
+      error: 'Proxy error (SDK)', 
+      details: errorMessage 
+    });
+  }
+});
+
+// Update customer address endpoint
+app.put('/api/customer/addresses/:addressId', express.json(), async (req, res) => {
+  try {
+    const { addressId } = req.params;
+    const { 
+      address_1, 
+      address_2, 
+      city, 
+      country_code, 
+      postal_code, 
+      province,
+      phone,
+      company,
+      first_name,
+      last_name
+    } = req.body;
+    const authHeader = req.headers.authorization;
+    
+    if (!authHeader) {
+      res.status(401).json({ 
+        success: false, 
+        error: 'No authorization token provided' 
+      });
+      return;
+    }
+    
+    // Update address using Medusa SDK
+    const { customer } = await sdk.store.customer.updateAddress(
+      addressId,
+      {
+        first_name,
+        last_name,
+        company,
+        address_1,
+        address_2,
+        city,
+        province,
+        postal_code,
+        country_code,
+        phone,
+      },
+      {},
+      { authorization: authHeader }
+    );
+    
+    res.status(200).json({ 
+      success: true,
+      customer
+    });
+  } catch (err) {
+    const errorMessage = err instanceof Error ? err.message : String(err);
+    console.error('Update address error:', errorMessage);
+    res.status(500).json({ 
+      error: 'Proxy error (SDK)', 
+      details: errorMessage 
+    });
+  }
+});
+
+// Delete customer address endpoint
+app.delete('/api/customer/addresses/:addressId', async (req, res) => {
+  try {
+    const { addressId } = req.params;
+    const authHeader = req.headers.authorization;
+    
+    if (!authHeader) {
+      res.status(401).json({ 
+        success: false, 
+        error: 'No authorization token provided' 
+      });
+      return;
+    }
+    
+    try {
+      // Delete address using Medusa SDK
+      await sdk.store.customer.deleteAddress(
+        addressId,
+        { authorization: authHeader }
+      );
+    } catch (deleteErr: any) {
+      // If the address is already deleted or not found, that's fine
+      const errorMessage = deleteErr instanceof Error ? deleteErr.message : String(deleteErr);
+      if (errorMessage.includes('not found') || errorMessage.includes('already deleted')) {
+        console.log('Address already deleted or not found:', addressId);
+      } else {
+        throw deleteErr;
+      }
+    }
+    
+    // Get updated customer data after deletion
+    const { customer } = await sdk.store.customer.retrieve(
+      {},
+      { authorization: authHeader }
+    );
+    
+    res.status(200).json({ 
+      success: true,
+      customer
+    });
+  } catch (err) {
+    const errorMessage = err instanceof Error ? err.message : String(err);
+    console.error('Delete address error:', errorMessage);
     res.status(500).json({ 
       error: 'Proxy error (SDK)', 
       details: errorMessage 

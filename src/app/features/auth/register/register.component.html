@@ -5,19 +5,33 @@
     <form (ngSubmit)="onSubmit($event)" class="register-form" autocomplete="on">
       <div class="register-row">
         <input type="text" placeholder="First name" [value]="firstName()" (input)="onFirstNameInput($event)" (blur)="onFirstNameBlur()" required autocomplete="given-name" />
-        <div *ngIf="firstNameTouched() && firstNameError()" class="register-error">{{ firstNameError() }}</div>
+        @if (firstNameTouched() && firstNameError()) {
+          <div class="register-error">{{ firstNameError() }}</div>
+        }
         <input type="text" placeholder="Last name" [value]="lastName()" (input)="onLastNameInput($event)" (blur)="onLastNameBlur()" required autocomplete="family-name" />
-        <div *ngIf="lastNameTouched() && lastNameError()" class="register-error">{{ lastNameError() }}</div>
+        @if (lastNameTouched() && lastNameError()) {
+          <div class="register-error">{{ lastNameError() }}</div>
+        }
       </div>
       <input type="email" placeholder="Email" [value]="email()" (input)="onEmailInput($event)" (blur)="onEmailBlur()" required autocomplete="email" />
-      <div *ngIf="emailTouched() && emailError()" class="register-error">{{ emailError() }}</div>
+      @if (emailTouched() && emailError()) {
+        <div class="register-error">{{ emailError() }}</div>
+      }
       <input type="tel" placeholder="Phone" [value]="phone()" (input)="onPhoneInput($event)" (blur)="onPhoneBlur()" required autocomplete="tel" />
-      <div *ngIf="phoneTouched() && phoneError()" class="register-error">{{ phoneError() }}</div>
+      @if (phoneTouched() && phoneError()) {
+        <div class="register-error">{{ phoneError() }}</div>
+      }
       <input type="password" placeholder="Password" [value]="password()" (input)="onPasswordInput($event)" (blur)="onPasswordBlur()" required autocomplete="new-password" />
-      <div *ngIf="passwordTouched() && passwordError()" class="register-error">{{ passwordError() }}</div>
+      @if (passwordTouched() && passwordError()) {
+        <div class="register-error">{{ passwordError() }}</div>
+      }
       <input type="password" placeholder="Confirm password" [value]="confirmPassword()" (input)="onConfirmPasswordInput($event)" (blur)="onConfirmPasswordBlur()" required autocomplete="new-password" />
-      <div *ngIf="confirmPasswordTouched() && confirmPasswordError()" class="register-error">{{ confirmPasswordError() }}</div>
-      <div *ngIf="error()" class="register-error">{{ error() }}</div>
+      @if (confirmPasswordTouched() && confirmPasswordError()) {
+        <div class="register-error">{{ confirmPasswordError() }}</div>
+      }
+      @if (error()) {
+        <div class="register-error">{{ error() }}</div>
+      }
       <app-button type="submit" [disabled]="!isFormValid()" label="Register" variant="primary" size="medium"></app-button>
     </form>
     <p class="register-login-link">

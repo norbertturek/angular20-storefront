@@ -1,4 +1,4 @@
-import { Component, inject, signal, computed, OnInit } from '@angular/core';
+import { Component, inject, signal, computed, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { ButtonComponent } from '@/app/ui/button/button.component';
@@ -25,9 +25,10 @@ interface Order {
   standalone: true,
   imports: [CommonModule, RouterModule, ButtonComponent],
   templateUrl: './orders.component.html',
-  styleUrls: ['./orders.component.scss']
+  styleUrls: ['./orders.component.scss'],
+  changeDetection: ChangeDetectionStrategy.OnPush
 })
-export class OrdersComponent implements OnInit {
+export class OrdersComponent {
   private authService = inject(AuthService);
   private customerService = inject(CustomerService);
   
@@ -45,7 +46,10 @@ export class OrdersComponent implements OnInit {
   hasOrders = computed(() => this.orders().length > 0);
   isLoading = computed(() => this.loading());
 
-  ngOnInit() { this.loadOrders(); }
+  // Inicjalizacja - załaduj zamówienia przy starcie
+  constructor() {
+    this.loadOrders();
+  }
 
   async loadOrders() {
     this.loading.set(true);

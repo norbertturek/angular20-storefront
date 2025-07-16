@@ -1,0 +1,179 @@
+@if (isOpen()) {
+  <div class="modal-overlay" (click)="close()">
+    <div class="modal-content" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h2 class="modal-title">{{ addressId() ? 'Edit Address' : 'Add New Address' }}</h2>
+        <button class="modal-close" (click)="close()" aria-label="Close modal">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        </button>
+      </div>
+      
+      <form (ngSubmit)="onSubmit($event)" class="modal-form">
+        <div class="form-row">
+          <div class="form-group">
+            <input 
+              type="text" 
+              placeholder="First Name *"
+              [value]="firstName()" 
+              (input)="onFirstNameInput($event)" 
+              (blur)="onFirstNameBlur()"
+              required
+              autocomplete="given-name"
+            />
+            @if (firstNameTouched() && firstNameError()) {
+              <div class="form-error">{{ firstNameError() }}</div>
+            }
+          </div>
+          
+          <div class="form-group">
+            <input 
+              type="text" 
+              placeholder="Last Name *"
+              [value]="lastName()" 
+              (input)="onLastNameInput($event)" 
+              (blur)="onLastNameBlur()"
+              required
+              autocomplete="family-name"
+            />
+            @if (lastNameTouched() && lastNameError()) {
+              <div class="form-error">{{ lastNameError() }}</div>
+            }
+          </div>
+        </div>
+        
+        <div class="form-group">
+          <input 
+            type="text" 
+            placeholder="Company (Optional)"
+            [value]="company()" 
+            (input)="onCompanyInput($event)"
+            autocomplete="organization"
+          />
+        </div>
+        
+        <div class="form-group">
+          <input 
+            type="text" 
+            placeholder="Address Line 1 *"
+            [value]="address1()" 
+            (input)="onAddress1Input($event)" 
+            (blur)="onAddress1Blur()"
+            required
+            autocomplete="address-line1"
+          />
+          @if (address1Touched() && address1Error()) {
+            <div class="form-error">{{ address1Error() }}</div>
+          }
+        </div>
+        
+        <div class="form-group">
+          <input 
+            type="text" 
+            placeholder="Address Line 2 (Optional)"
+            [value]="address2()" 
+            (input)="onAddress2Input($event)"
+            autocomplete="address-line2"
+          />
+        </div>
+        
+        <div class="form-row">
+          <div class="form-group">
+            <input 
+              type="text" 
+              placeholder="City *"
+              [value]="city()" 
+              (input)="onCityInput($event)" 
+              (blur)="onCityBlur()"
+              required
+              autocomplete="address-level2"
+            />
+            @if (cityTouched() && cityError()) {
+              <div class="form-error">{{ cityError() }}</div>
+            }
+          </div>
+          
+          <div class="form-group">
+            <input 
+              type="text" 
+              placeholder="State/Province (Optional)"
+              [value]="province()" 
+              (input)="onProvinceInput($event)"
+              autocomplete="address-level1"
+            />
+          </div>
+        </div>
+        
+        <div class="form-row">
+          <div class="form-group">
+            <input 
+              type="text" 
+              placeholder="Postal Code *"
+              [value]="postalCode()" 
+              (input)="onPostalCodeInput($event)" 
+              (blur)="onPostalCodeBlur()"
+              required
+              autocomplete="postal-code"
+            />
+            @if (postalCodeTouched() && postalCodeError()) {
+              <div class="form-error">{{ postalCodeError() }}</div>
+            }
+          </div>
+          
+          <div class="form-group">
+            <select 
+              name="countryCode"
+              [ngModel]="countryCode()" 
+              (ngModelChange)="countryCode.set($event)" 
+              (blur)="onCountryCodeBlur()"
+              required
+              autocomplete="country"
+            >
+              <option value="">Select Country</option>
+              @for (country of countries; track country.code) {
+                <option [value]="country.code">
+                  {{ country.name }}
+                </option>
+              }
+            </select>
+            @if (countryCodeTouched() && countryCodeError()) {
+              <div class="form-error">{{ countryCodeError() }}</div>
+            }
+          </div>
+        </div>
+        
+        <div class="form-group">
+          <input 
+            type="tel" 
+            placeholder="Phone Number (Optional)"
+            [value]="phone()" 
+            (input)="onPhoneInput($event)"
+            autocomplete="tel"
+          />
+        </div>
+        
+        @if (error()) {
+          <div class="form-error global-error">{{ error() }}</div>
+        }
+        
+        <div class="modal-actions">
+          <app-button 
+            type="button" 
+            label="Cancel" 
+            variant="secondary" 
+            (clicked)="close()"
+            [disabled]="loading()"
+          ></app-button>
+          <app-button 
+            type="submit" 
+            [label]="addressId() ? 'Save Changes' : 'Add Address'" 
+            variant="primary" 
+            [disabled]="!isFormValid() || loading()"
+          ></app-button>
+        </div>
+      </form>
+    </div>
+  </div>
+} 

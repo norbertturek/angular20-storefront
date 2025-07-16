@@ -23,18 +23,24 @@
           <div class="form-field">
             <label>First Name</label>
             <input type="text" [ngModel]="firstName()" (ngModelChange)="firstName.set($event)" name="firstName" (blur)="validateFirstName()" />
-            <div class="error" *ngIf="firstNameError()">{{ firstNameError() }}</div>
+            @if (firstNameError()) {
+              <div class="error">{{ firstNameError() }}</div>
+            }
           </div>
           <div class="form-field">
             <label>Last Name</label>
             <input type="text" [ngModel]="lastName()" (ngModelChange)="lastName.set($event)" name="lastName" (blur)="validateLastName()" />
-            <div class="error" *ngIf="lastNameError()">{{ lastNameError() }}</div>
+            @if (lastNameError()) {
+              <div class="error">{{ lastNameError() }}</div>
+            }
           </div>
         </div>
         <div class="form-field">
           <label>Phone</label>
           <input type="tel" [ngModel]="phone()" (ngModelChange)="phone.set($event)" name="phone" (blur)="validatePhone()" />
-          <div class="error" *ngIf="phoneError()">{{ phoneError() }}</div>
+          @if (phoneError()) {
+            <div class="error">{{ phoneError() }}</div>
+          }
         </div>
         <div class="form-actions">
           <app-button label="Cancel" variant="secondary" (clicked)="cancelEditing()"></app-button>
@@ -73,7 +79,18 @@
                 <div class="address-line">{{ address.country_code }}</div>
               </div>
               <div class="address-actions">
-                <app-button label="Edit" variant="secondary"></app-button>
+                <app-button label="Change" variant="secondary" (clicked)="addAddressModal.open(address.id)"></app-button>
+                <button 
+                  class="delete-btn"
+                  (click)="deleteAddress(address.id)"
+                  aria-label="Delete address"
+                  type="button"
+                >
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="3,6 5,6 21,6"></polyline>
+                    <path d="m19,6v14a2,2 0 0,1 -2,2H7a2,2 0 0,1 -2,-2V6m3,0V4a2,2 0 0,1 2,-2h4a2,2 0 0,1 2,2v2"></path>
+                  </svg>
+                </button>
               </div>
             </div>
           }
@@ -82,8 +99,14 @@
     } @else {
       <div class="info-note">You don't have any addresses saved yet.</div>
     }
-    <app-button label="Add Address" class="add-address-btn"></app-button>
+    <app-button label="Add Address" class="add-address-btn" (clicked)="addAddressModal.open()"></app-button>
   </div>
+
+  <!-- Add Address Modal -->
+  <app-add-address-modal #addAddressModal></app-add-address-modal>
+
+  <!-- Delete Confirmation Modal -->
+  <app-delete-confirmation-modal #deleteConfirmationModal></app-delete-confirmation-modal>
 
   <!-- Password Section -->
   <div class="card">

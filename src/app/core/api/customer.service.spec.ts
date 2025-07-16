@@ -1,9 +1,10 @@
 import { TestBed } from '@angular/core/testing';
+import { HttpClientTestingModule, HttpTestingController } from '@angular/common/http/testing';
 import { HttpClient } from '@angular/common/http';
 import { of, throwError } from 'rxjs';
 import { signal } from '@angular/core';
-import { CustomerService, UpdateCustomerPayload, Customer, Order } from './customer.service';
-import { AuthService } from './auth.service';
+import { CustomerService, UpdateCustomerPayload, Order } from './customer.service';
+import { AuthService, Customer } from './auth.service';
 import { ToastService } from '@services/toast.service';
 
 describe('CustomerService', () => {
