@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, signal, effect } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterModule } from '@angular/router';
 
@@ -7,6 +7,7 @@ import { HttpTypes } from '@medusajs/types';
 
 import { CartService } from '@services/cart.service';
 import { ToastService } from '@services/toast.service';
+import { AuthService } from '@api/auth.service';
 
 import { DiscountCodeComponent } from '@sharedComponents/discount-code/discount-code.component';
 
@@ -21,6 +22,7 @@ import { DiscountCodeComponent } from '@sharedComponents/discount-code/discount-
 export class CheckoutComponent {
   private cartService = inject(CartService);
   private toastService = inject(ToastService);
+  authService = inject(AuthService);
   router = inject(Router);
 
   cart = signal<HttpTypes.StoreCart | null>(null);
@@ -61,6 +63,8 @@ export class CheckoutComponent {
     return emailValue && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailValue);
   });
 
+  isAuthenticated = computed(() => this.authService.isAuthenticated());
+
   isShippingAddressValid = computed(() => {
     return this.shippingFirstName() && 
            this.shippingLastName() && 
@@ -99,15 +103,17 @@ export class CheckoutComponent {
   });
 
   // --- PERFORMANCE OPTIMIZATION ---
-  // Move effect out of constructor to class field
-  cartEffect = (() => {
-    // Use effect to reactively update cart when cart service changes
+  // Use effect to reactively update cart when cart service changes
+  cartEffect = effect(() => {
     const cart = this.cartService.cart();
+    console.log('Cart effect triggered, cart:', cart);
+    console.log('Cart effect - cart ID:', cart?.id);
+    console.log('Cart effect - shipping address:', cart?.shipping_address);
     if (cart) {
       this.cart.set(cart);
       this.loadCartData(cart);
     }
-  })();
+  });
 
   // Computed for selected shipping method name
   selectedShippingMethodName = computed(() => {
@@ -129,15 +135,20 @@ export class CheckoutComponent {
   });
 
   constructor() {
-    // Initial load
+    // Restore auth service data from storage if needed
+    this.authService.restoreFromStorageIfNeeded();
+    
+    // Initial load - loadCartData will be called by effect when cart is loaded
     this.loadCart();
   }
 
   async loadCart() {
+    console.log('loadCart called');
     this.isLoading.set(true);
     this.errorMessage.set(null);
     try {
       const cart = await this.cartService.retrieveCart();
+      console.log('loadCart result:', cart);
       if (cart) {
         this.cart.set(cart);
         this.loadCartData(cart);
@@ -145,6 +156,7 @@ export class CheckoutComponent {
         this.errorMessage.set('No cart found. Please add items to your cart first.');
       }
     } catch (error) {
+      console.error('loadCart error:', error);
       this.errorMessage.set('Failed to load cart. Please try again.');
     } finally {
       this.isLoading.set(false);
@@ -152,12 +164,19 @@ export class CheckoutComponent {
   }
 
   loadCartData(cart: any) {
+    console.log('loadCartData called with cart:', cart);
     // Pre-fill forms with existing data
-    if (cart.email) {
-      this.email.set(cart.email);
+    // First check if there's a logged-in customer and use their email
+    this.refreshEmailFromCustomer(cart);
+    
+    // Auto-add email to cart for logged-in users if cart doesn't have email
+    const customer = this.authService.customer();
+    if (customer?.email && !cart.email) {
+      this.autoAddEmailToCart(customer.email);
     }
 
     if (cart.shipping_address) {
+      console.log('Pre-filling shipping address:', cart.shipping_address);
       this.shippingFirstName.set(cart.shipping_address.first_name || '');
       this.shippingLastName.set(cart.shipping_address.last_name || '');
       this.shippingAddress1.set(cart.shipping_address.address_1 || '');
@@ -165,9 +184,12 @@ export class CheckoutComponent {
       this.shippingPostalCode.set(cart.shipping_address.postal_code || '');
       this.shippingCountryCode.set(cart.shipping_address.country_code || '');
       this.shippingPhone.set(cart.shipping_address.phone || '');
+    } else {
+      console.log('No shipping address in cart');
     }
 
     if (cart.billing_address) {
+      console.log('Pre-filling billing address:', cart.billing_address);
       this.billingFirstName.set(cart.billing_address.first_name || '');
       this.billingLastName.set(cart.billing_address.last_name || '');
       this.billingAddress1.set(cart.billing_address.address_1 || '');
@@ -183,6 +205,23 @@ export class CheckoutComponent {
 
     if(cart.shipping_methods?.length) {
       this.loadPaymentOptions();
+    }
+  }
+
+  private refreshEmailFromCustomer(cart: any) {
+    const customer = this.authService.customer();
+    if (customer?.email && !cart.email) {
+      this.email.set(customer.email);
+    } else if (cart.email) {
+      this.email.set(cart.email);
+    }
+  }
+
+  // Public method to refresh email when user logs in
+  refreshEmailFromLoggedInCustomer() {
+    const cart = this.cart();
+    if (cart) {
+      this.refreshEmailFromCustomer(cart);
     }
   }
 
@@ -251,9 +290,12 @@ export class CheckoutComponent {
           first_name: this.shippingFirstName(),
           last_name: this.shippingLastName(),
           address_1: this.shippingAddress1(),
+          address_2: '', // Add missing field
           city: this.shippingCity(),
           postal_code: this.shippingPostalCode(),
           country_code: this.shippingCountryCode(),
+          province: '', // Add missing field
+          company: '', // Add missing field
           phone: this.shippingPhone()
         };
 
@@ -261,9 +303,13 @@ export class CheckoutComponent {
           first_name: this.billingFirstName(),
           last_name: this.billingLastName(),
           address_1: this.billingAddress1(),
+          address_2: '', // Add missing field
           city: this.billingCity(),
           postal_code: this.billingPostalCode(),
-          country_code: this.billingCountryCode()
+          country_code: this.billingCountryCode(),
+          province: '', // Add missing field
+          company: '', // Add missing field
+          phone: '' // Add missing field
         };
 
         const cart = await this.cartService.updateCart(cartId, {
@@ -325,6 +371,35 @@ export class CheckoutComponent {
 
   goToStep(step: string) {
     this._forceStep.set(step);
+    
+    // Pre-fill address form when going back to delivery step
+    if (step === 'delivery' && this.cart()?.shipping_address) {
+      this.preFillAddressForm();
+    }
+  }
+
+  private preFillAddressForm() {
+    const address = this.cart()?.shipping_address;
+    if (address) {
+      this.shippingFirstName.set(address.first_name || '');
+      this.shippingLastName.set(address.last_name || '');
+      this.shippingAddress1.set(address.address_1 || '');
+      this.shippingCity.set(address.city || '');
+      this.shippingPostalCode.set(address.postal_code || '');
+      this.shippingCountryCode.set(address.country_code || '');
+      this.shippingPhone.set(address.phone || '');
+    }
+
+    // Pre-fill billing address if it exists and is different from shipping
+    const billingAddress = this.cart()?.billing_address;
+    if (billingAddress && !this.sameAsBilling()) {
+      this.billingFirstName.set(billingAddress.first_name || '');
+      this.billingLastName.set(billingAddress.last_name || '');
+      this.billingAddress1.set(billingAddress.address_1 || '');
+      this.billingCity.set(billingAddress.city || '');
+      this.billingPostalCode.set(billingAddress.postal_code || '');
+      this.billingCountryCode.set(billingAddress.country_code || '');
+    }
   }
 
   onCheckboxChange(event: Event) {
@@ -404,6 +479,22 @@ export class CheckoutComponent {
   forceClearCart(): void {
     this.cartService.forceClearCart();
     window.location.reload();
+  }
+
+  private async autoAddEmailToCart(email: string) {
+    this.isLoading.set(true);
+    this.errorMessage.set(null);
+    try {
+      const cartId = this.cart()?.id;
+      if (cartId) {
+        const cart = await this.cartService.updateCart(cartId, { email: email });
+        this.cart.set(cart);
+      }
+    } catch (error) {
+      this.errorMessage.set('Failed to auto-add email to cart. Please try again.');
+    } finally {
+      this.isLoading.set(false);
+    }
   }
 }
 

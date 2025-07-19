@@ -1,5 +1,6 @@
 import { HttpClient } from '@angular/common/http';
 import { inject, Injectable, signal } from '@angular/core';
+import { firstValueFrom } from 'rxjs';
 import { AuthService, Customer } from './auth.service';
 import { ToastService } from '@services/toast.service';
 
@@ -80,7 +81,7 @@ export class CustomerService {
     }
 
     try {
-      const data: CustomerResponse = await this.http.post(
+      const data = await firstValueFrom(this.http.post<CustomerResponse>(
         '/api/customer/update',
         payload,
         { 
@@ -89,16 +90,16 @@ export class CustomerService {
             'Authorization': `Bearer ${token}`
           } 
         }
-      ).toPromise() as CustomerResponse;
+      ));
 
-      if (!data.success) {
-        this.error.set(data.error || 'Failed to update customer.');
-        this.toastService.error(data.error || 'Failed to update customer.', 'Update Error');
-        return data;
+      if (!data?.success) {
+        this.error.set(data?.error || 'Failed to update customer.');
+        this.toastService.error(data?.error || 'Failed to update customer.', 'Update Error');
+        return data!;
       }
       
       this.toastService.success('Profile updated successfully!', 'Profile Updated');
-      return data;
+      return data!;
     } catch (err: any) {
       const errorMessage = err?.error?.details || err?.message || 'Failed to update customer.';
       this.error.set(errorMessage);
@@ -123,7 +124,7 @@ export class CustomerService {
     }
 
     try {
-      const data: OrdersResponse = await this.http.get(
+      const data = await firstValueFrom(this.http.get<OrdersResponse>(
         `/api/customer/orders?limit=${limit}&offset=${offset}`,
         { 
           headers: { 
@@ -131,15 +132,15 @@ export class CustomerService {
             'Authorization': `Bearer ${token}`
           } 
         }
-      ).toPromise() as OrdersResponse;
+      ));
 
-      if (!data.success) {
-        this.error.set(data.error || 'Failed to fetch orders.');
-        this.toastService.error(data.error || 'Failed to fetch orders.', 'Orders Error');
-        return data;
+      if (!data?.success) {
+        this.error.set(data?.error || 'Failed to fetch orders.');
+        this.toastService.error(data?.error || 'Failed to fetch orders.', 'Orders Error');
+        return data!;
       }
       
-      return data;
+      return data!;
     } catch (err: any) {
       const errorMessage = err?.error?.details || err?.message || 'Failed to fetch orders.';
       this.error.set(errorMessage);
@@ -155,20 +156,20 @@ export class CustomerService {
     this.error.set(null);
 
     try {
-      const data: CustomerResponse = await this.http.post(
+      const data = await firstValueFrom(this.http.post<CustomerResponse>(
         '/api/customer/password-reset',
         { email },
         { headers: { 'Content-Type': 'application/json' } }
-      ).toPromise() as CustomerResponse;
+      ));
 
-      if (!data.success) {
-        this.error.set(data.error || 'Failed to request password reset.');
-        this.toastService.error(data.error || 'Failed to request password reset.', 'Password Reset Error');
-        return data;
+      if (!data?.success) {
+        this.error.set(data?.error || 'Failed to request password reset.');
+        this.toastService.error(data?.error || 'Failed to request password reset.', 'Password Reset Error');
+        return data!;
       }
       
       this.toastService.success('Password reset email sent! Check your inbox.', 'Password Reset Sent');
-      return data;
+      return data!;
     } catch (err: any) {
       const errorMessage = err?.error?.details || err?.message || 'Failed to request password reset.';
       this.error.set(errorMessage);
@@ -193,7 +194,7 @@ export class CustomerService {
     }
 
     try {
-      const data: AddressResponse = await this.http.post(
+      const data = await firstValueFrom(this.http.post<AddressResponse>(
         '/api/customer/addresses',
         payload,
         { 
@@ -202,16 +203,16 @@ export class CustomerService {
             'Authorization': `Bearer ${token}`
           } 
         }
-      ).toPromise() as AddressResponse;
+      ));
 
-      if (!data.success) {
-        this.error.set(data.error || 'Failed to add address.');
-        this.toastService.error(data.error || 'Failed to add address.', 'Add Address Error');
-        return data;
+      if (!data?.success) {
+        this.error.set(data?.error || 'Failed to add address.');
+        this.toastService.error(data?.error || 'Failed to add address.', 'Add Address Error');
+        return data!;
       }
       
       this.toastService.success('Address added successfully!', 'Address Added');
-      return data;
+      return data!;
     } catch (err: any) {
       const errorMessage = err?.error?.details || err?.message || 'Failed to add address.';
       this.error.set(errorMessage);
@@ -236,7 +237,7 @@ export class CustomerService {
     }
 
     try {
-      const data: AddressResponse = await this.http.put(
+      const data = await firstValueFrom(this.http.put<AddressResponse>(
         `/api/customer/addresses/${addressId}`,
         payload,
         { 
@@ -245,16 +246,16 @@ export class CustomerService {
             'Authorization': `Bearer ${token}`
           } 
         }
-      ).toPromise() as AddressResponse;
+      ));
 
-      if (!data.success) {
-        this.error.set(data.error || 'Failed to update address.');
-        this.toastService.error(data.error || 'Failed to update address.', 'Update Address Error');
-        return data;
+      if (!data?.success) {
+        this.error.set(data?.error || 'Failed to update address.');
+        this.toastService.error(data?.error || 'Failed to update address.', 'Update Address Error');
+        return data!;
       }
       
       this.toastService.success('Address updated successfully!', 'Address Updated');
-      return data;
+      return data!;
     } catch (err: any) {
       const errorMessage = err?.error?.details || err?.message || 'Failed to update address.';
       this.error.set(errorMessage);
@@ -279,23 +280,23 @@ export class CustomerService {
     }
 
     try {
-      const data: AddressResponse = await this.http.delete(
+      const data = await firstValueFrom(this.http.delete<AddressResponse>(
         `/api/customer/addresses/${addressId}`,
         { 
           headers: { 
             'Authorization': `Bearer ${token}`
           } 
         }
-      ).toPromise() as AddressResponse;
+      ));
 
-      if (!data.success) {
-        this.error.set(data.error || 'Failed to delete address.');
-        this.toastService.error(data.error || 'Failed to delete address.', 'Delete Address Error');
-        return data;
+      if (!data?.success) {
+        this.error.set(data?.error || 'Failed to delete address.');
+        this.toastService.error(data?.error || 'Failed to delete address.', 'Delete Address Error');
+        return data!;
       }
       
       this.toastService.success('Address deleted successfully!', 'Address Deleted');
-      return data;
+      return data!;
     } catch (err: any) {
       const errorMessage = err?.error?.details || err?.message || 'Failed to delete address.';
       

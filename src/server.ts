@@ -193,20 +193,12 @@ app.get('/api/customer/orders', async (req, res) => {
 app.post('/api/customer/password-reset', express.json(), async (req, res) => {
   try {
     const { email } = req.body;
-    
-    // TODO: Implement password reset using Medusa SDK
-    // For now, just return success
-    
-    res.status(200).json({ 
-      success: true 
-    });
+    await sdk.auth.resetPassword('customer', 'emailpass', { identifier: email });
+    res.status(200).json({ success: true });
   } catch (err) {
     const errorMessage = err instanceof Error ? err.message : String(err);
     console.error('Password reset error:', errorMessage);
-    res.status(500).json({ 
-      error: 'Proxy error (SDK)', 
-      details: errorMessage 
-    });
+    res.status(500).json({ success: false, error: errorMessage });
   }
 });
 

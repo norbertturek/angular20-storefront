@@ -135,7 +135,6 @@ export class PersonalSecurityComponent {
       return;
     }
     
-    const result = await this.customerService.requestPasswordReset(customer.email);
-    // Toast notification is handled by CustomerService
+    await this.customerService.requestPasswordReset(customer.email);
   }
 } 

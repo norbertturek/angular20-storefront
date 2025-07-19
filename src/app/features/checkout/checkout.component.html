@@ -1,4 +1,17 @@
 <div class="checkout-container" [class.is-loading]="isLoading()">
+  <!-- Debug Info -->
+  <div class="debug-info" style="background: #f0f0f0; padding: 10px; margin-bottom: 20px; border-radius: 4px;">
+    <h4>Debug Info:</h4>
+    <p><strong>Current Step:</strong> {{ currentStep() }}</p>
+    <p><strong>Cart ID:</strong> {{ cart()?.id || 'No cart' }}</p>
+    <p><strong>Cart Email:</strong> {{ cart()?.email || 'No email' }}</p>
+    <p><strong>Has Shipping Address:</strong> {{ cart()?.shipping_address ? 'Yes' : 'No' }}</p>
+    <p><strong>Shipping Address:</strong> {{ cart()?.shipping_address?.address_1 || 'No address' }}</p>
+    <p><strong>Form Email:</strong> {{ email() }}</p>
+    <p><strong>Form Shipping First Name:</strong> {{ shippingFirstName() }}</p>
+    <p><strong>Form Shipping Address:</strong> {{ shippingAddress1() }}</p>
+  </div>
+
   <div class="checkout-content">
     <h1>Checkout</h1>
     
@@ -236,7 +249,15 @@
         </div>
       } @else if (cart()?.shipping_address) {
         <div class="step-summary">
-          <p>{{ cart()?.shipping_address?.address_1 }}, {{ cart()?.shipping_address?.city }}</p>
+          <div class="address-summary">
+            <p class="address-name">{{ cart()?.shipping_address?.first_name }} {{ cart()?.shipping_address?.last_name }}</p>
+            <p class="address-details">{{ cart()?.shipping_address?.address_1 }}, {{ cart()?.shipping_address?.city }}, {{ cart()?.shipping_address?.postal_code }}</p>
+            <p class="address-country">{{ cart()?.shipping_address?.country_code?.toUpperCase() }}</p>
+            @if (cart()?.shipping_address?.phone) {
+              <p class="address-phone">{{ cart()?.shipping_address?.phone }}</p>
+            }
+          </div>
+          <button class="edit-btn" (click)="goToStep('delivery')">Edit</button>
         </div>
       }
     </div>
